@@ -1,0 +1,6 @@
+apiVersion: dst.org/v1
+kind: PlanRequest
+metadata:
+  name: myreq1
+spec:
+  deletePlanOnDeleted: true

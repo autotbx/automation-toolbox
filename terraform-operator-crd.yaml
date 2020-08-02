@@ -1,0 +1,386 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: modules.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: Module
+    plural: modules
+    singular: module
+    shortNames:
+      - mods
+      - mod
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.type
+        name: type
+        type: string
+        description: Type
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              required:
+              - attributes
+              type: object
+              properties:
+                autoPlanRequest:
+                  type: boolean
+                  default: true
+                type:
+                  type: string
+                attributes:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: providers.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: Provider
+    plural: providers
+    singular: provider
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.autoPlanRequest
+        name: autoPlanRequest
+        type: string
+        description: autoPlanRequest
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              required:
+              - autoPlanRequest
+              - attributes
+              type: object
+              properties:
+                autoPlanRequest:
+                  type: boolean
+                type:
+                  type: string
+                attributes:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: planrequests.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: PlanRequest
+    plural: planrequests
+    singular: planrequest
+    shortNames:
+      - prs
+      - pr
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.deletePlanOnDeleted
+        name: deletePlanOnDeleted
+        type: string
+        description: deletePlanOnDeleted
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              type: object
+              properties:
+                deletePlanOnDeleted:
+                  type: boolean
+                  default: false
+                targets:
+                  type: array
+                  items:
+                    type: string
+            status:
+              type: object
+              properties:
+                plans:
+                  type: array
+                  items:
+                    type: string
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: states.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: State
+    plural: states
+    singular: state
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.autoPlanApprove
+        name: autoPlanApprove
+        type: string
+        description: autoPlanRequest
+      - jsonPath: .spec.autoPlanRequest
+        name: autoPlanRequest
+        type: string
+        description: deleteJobsOnPlanDeleted
+      - jsonPath: .spec.deleteJobsOnPlanDeleted
+        name: deleteJobsOnPlanDeleted
+        type: string
+        description: deletePlansOnPlanDeleted
+      - jsonPath: .spec.deletePlansOnPlanDeleted
+        name: deletePlansOnPlanDeleted
+        type: string
+        description: deletePlansOnPlanDeleted
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              required:
+              - autoPlanApprove
+              - autoPlanRequest
+              - deleteJobsOnPlanDeleted
+              - deletePlansOnPlanDeleted
+              type: object
+              properties:
+                autoPlanApprove:
+                  type: boolean
+                autoPlanRequest:
+                  type: boolean
+                deleteJobsOnPlanDeleted:
+                  type: boolean
+                deletePlansOnPlanDeleted:
+                  type: boolean
+                tfGeneratorImage:
+                  type: string
+                  default: harbor.pks.lab.platform-essential.com/library/tfgen:latest
+                tfExecutorImage:
+                  type: string
+                  default: harbor.pks.lab.platform-essential.com/library/terraform:latest
+                tfGeneratorImagePullPolicy:
+                  type: string
+                  enum:
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: Always
+                tfExecutorImagePullPolicy:
+                  type: string
+                  enum: 
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: Always
+                types:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: plans.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: Plan
+    plural: plans
+    singular: plan
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.state
+        name: state
+        type: string
+        description: State
+      - jsonPath: .spec.approved
+        description: Approved
+        name: approved
+        type: boolean
+      - jsonPath: .status.planStatus
+        description: Plan Status
+        name: planStatus
+        type: string
+      - jsonPath: .status.planStartTime
+        description: Plan Start Time
+        name: planStartTime
+        type: string 
+      - jsonPath: .status.planCompleteTime
+        description: Plan Complete Time
+        name: planCompleteTime
+        type: string 
+      - jsonPath: .status.applyStatus
+        description: Apply Status
+        name: applyStatus
+        type: string  
+      - jsonPath: .status.applyStartTime
+        description: Apply Start Time
+        name: applyStartTime
+        type: string 
+      - jsonPath: .status.applyCompleteTime
+        description: Apply Complete Time
+        name: applyCompleteTime
+        type: string 
+
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              required:
+              - approved
+              - deleteJobsOnDeleted
+              - deletePlansOnDeleted
+              - state
+              type: object
+              properties:
+                approved:
+                  type: boolean
+                targets:
+                  type: array
+                  items:
+                    type: string
+                #exists?
+                state:
+                  type: string
+                deleteJobsOnDeleted:
+                  type: boolean
+                deletePlansOnDeleted:
+                  type: boolean
+                tfGeneratorImage:
+                  type: string
+                  default: harbor.pks.lab.platform-essential.com/library/tfgen:latest
+                tfExecutorImage:
+                  type: string
+                  default: harbor.pks.lab.platform-essential.com/library/terraform:latest
+                tfGeneratorImagePullPolicy:
+                  type: string
+                  enum:
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: Always
+                tfExecutorImagePullPolicy:
+                  type: string
+                  enum: 
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: Always
+                originalPlan:
+                  type: string
+            status:
+              type: object
+              properties:
+                planStatus:
+                  type: string
+                  default: "Requested"
+                  enum:
+                  - Active
+                  - Requested
+                  - Failed
+                  - Completed
+                planOutput:
+                  type: string
+                planJob:
+                  type: string
+                  default: ""
+                planStartTime:
+                  type: string
+                  default: "Not yet started"
+                planCompleteTime:
+                  type: string
+                  default: "Not yet completed"
+                applyStatus:
+                  type: string
+                  default: "Pending"
+                  enum:
+                  - Active
+                  - Requested
+                  - Failed
+                  - Completed
+                  - Pending
+                applyOutput:
+                    type: string
+                applyStartTime:
+                  type: string
+                  default: "Not yet started"
+                applyCompleteTime:
+                  type: string
+                  default: "Not yet completed"
+                applyJob:
+                  type: string
+                  default: ""
+                applyConditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      lastProbeTime:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                planConditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      lastProbeTime:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+

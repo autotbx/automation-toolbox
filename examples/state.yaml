@@ -1,0 +1,22 @@
+apiVersion: dst.org/v1
+kind: State
+metadata:
+  name: mystate
+spec:
+  autoPlanApprove: false
+  autoPlanRequest: true
+  deleteJobsOnPlanDeleted: true
+  deletePlansOnPlanDeleted: true
+  types:
+    VMwareVirtualMachine:
+      network_name : vm_network
+      dns_servers:
+      - 8.8.8.8
+      domain: lab.local
+      folder_path: myvms
+      datacenter_name: DatacenterName
+      cluster_name: ClusterName
+      datastore_name: DataStoreName
+      template_name: TemplateName
+      source: "git::http://your-terraform-module.git"
+---

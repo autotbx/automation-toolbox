@@ -1,0 +1,12 @@
+apiVersion: dst.org/v1
+kind: Module
+metadata:
+  name: mymod2
+spec:
+  autoPlanRequest: true
+  type: VMwareVirtualMachine
+  attributes:
+    vmnames:
+    - dst-tf-k8s2
+    num_cpus: 2
+    memory: 1024

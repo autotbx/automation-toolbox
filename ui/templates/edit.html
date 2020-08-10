@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block customcss %}{{css}}{% endblock %}
+{% block title %}{{pluralTitle}}{% endblock %}
+{% block nav %}
+  {% if namespace %}
+  <a href="/{{ plural }}/">{{pluralTitle}}</a>  <span data-feather="chevron-right"></span>
+    <a href="/{{ plural }}/{{namespace}}/">{{ namespace }}</a>  <span data-feather="chevron-right"></span>
+   <a href="/{{ plural }}/{{namespace}}/{{ name }}">{{ name }}</a>  <span data-feather="chevron-right"></span>
+    {% if mode == "create" %}
+    New
+    {% else %}
+      Edition
+    {%endif%}
+  {% else %}
+    <a href="/cluster/{{ plural }}/">{{pluralTitle}}</a>
+    <span data-feather="chevron-right"></span> {{ name }}
+  {% endif %}
+{% endblock %}
+{% block actions %}
+<button type="button" class="btn btn-success actionedit">Save</button>
+<button type="button" class="btn btn-danger actioncancel">Cancel</button>
+{% endblock %}
+{% block obj %}{{name}}{% endblock %}
+{% block content %}
+
+<div class="container">
+    <div class="row">
+      <div class="col cust">
+        <h4><span class="blue">Specitications</span></h4>
+        {{ form | safe }}
+      </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block last %}
+<script>
+var name = "{{name}}";
+var namespace = "{{namespace}}";
+
+(function() {
+  'use strict';
+  window.addEventListener('load', function() {
+    // Fetch all the forms we want to apply custom Bootstrap validation styles to
+    var forms = document.getElementsByClassName('needs-validation');
+    // Loop over them and prevent submission
+    var validation = Array.prototype.filter.call(forms, function(form) {
+      form.addEventListener('submit', function(event) {
+        if (form.checkValidity() === false) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  }, false);
+
+
+  $(".actionedit").click(function() {
+    var e = 0
+    for ( var k in editors) {
+      var value = editors[k].getValue();
+      if ($("#editor-"+k).attr("required") == "required" && value == "") {
+        $("#editor-"+k).css('border', '1px solid red');
+        e = 1;
+      }
+      $('form').append('<textarea style="display: none" name="'+k+'">'+value+'</textarea>');
+    };
+    if (!e) {
+      $('#submit').click()
+    }
+  });
+
+  $('#formclusterModuleTemplate').change(function () {
+    if($(this).val() != "") {
+      $.get( "/api/clustermoduletemplates/"+$(this).val()+"/attributes", function( data ) {
+        var f = data.replace(/\n/g, "<br>");
+        f = f.replace(/ /g, "&nbsp;");
+        $('#pre-editor-attributes').html(f + '<br>')
+      });
+    }
+    else {
+      $('#pre-editor-attributes').html('')
+    }
+  });
+
+  $('#formmoduleTemplate').change(function () {
+    if($(this).val() != "") {
+      $.get( "/api/moduletemplates/"+namespace+"/"+$(this).val()+"/attributes", function( data ) {
+        var f = data.replace(/\n/g, "<br>");
+        f = f.replace(/ /g, "&nbsp;");
+        $('#pre-editor-attributes').html(f + '<br>')
+      });
+    }
+    else {
+      $('#pre-editor-attributes').html('')
+    }
+  });
+  $(".actioncancel").click(function() {
+    window.history.back();
+  });
+})();
+</script>
+{% endblock %}

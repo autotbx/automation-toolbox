@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{objs}}{% endblock %}
+{% block nav %}
+
+{% if namespace %}
+<a href="/{{ plural }}">{{pluralTitle}}</a> <span data-feather="chevron-right"></span> <a href="/{{ plural }}/{{namespace}}">{{namespace}} </a>
+{% else %}
+<a href="/cluster/{{ plural }}">{{pluralTitle}}</a>
+  {% if name is defined %}
+    <span data-feather="chevron-right"></span>{{ name }}
+  {% endif %}
+{% endif %}
+{% endblock %}
+{% block obj %}{{objs}}{% endblock %}
+{% block actions %}
+
+{% if  namespace %}
+  <button type="button" class="btn btn-success actioncreate">Create</button>
+{% endif %}
+{% endblock %}
+{% block content %}
+
+{{table | safe }}
+
+{% endblock %}
+{% block last %}
+<script>
+
+$(document).ready(function() {
+  {{ js | safe }}
+  $(".actioncreate").click(function() {
+    location.href = window.location.href.split('?')[0] + '_new';
+  });
+} );
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}All Plans{% endblock %}
+{% block nav %}Plans{% endblock %}
+{% block obj %}All Plans{% endblock %}
+{% block content %}
+<table id="plans" class="table" style="width:100%"> 
+  <thead>
+      <tr>
+        <th>Name</th>
+        <th>State</th>
+        <th>Approved</th>
+        <th>Plan Status</th>
+        <th>Plan Start Time</th>
+        <th>Plan Completion Time</th>
+        <th>Apply Status</th>
+        <th>Apply Start Time</th>
+        <th>Apply Completion Time</th>
+      </tr>
+  </thead>
+  <tfoot>
+    <tr>
+      <th>Name</th>
+      <th>State</th>
+      <th>Approved</th>
+      <th>Plan Status</th>
+      <th>Plan Start Time</th>
+      <th>Plan Completion Time</th>
+      <th>Apply Status</th>
+      <th>Apply Start Time</th>
+      <th>Apply Completion Time</th>
+  </tr>
+  </tfoot>
+</table>
+{% endblock %}
+{% block last %}
+<script>
+
+$(document).ready(function() {
+
+  table = $('#plans').DataTable( {
+        "ajax": "api/plans",
+        "createdRow": function( row, data, dataIndex){
+          $(row).addClass('table-row');
+      //    if( data[2] ==  `someVal`){
+        },
+        "fnInitComplete": function(oSettings, json) {
+          $(".dataTables_length select").addClass("table-input");
+          $(".dataTables_length").addClass("table-length");
+          $(".dataTables_filter input").addClass("table-input");
+          $(".dataTables_filter").addClass("table-length");
+          $(".dataTables_info").addClass("table-length");
+        },
+        // "order": [[1, 'asc']]
+        "columns": [
+            { "data": "planName" },
+            { "data": "state" },
+            { "data": "approved" },
+            { "data": "planStatus" },
+            { "data": "planStartTime" },
+            { "data": "planCompleteTime" },
+            { "data": "applyStatus" },
+            { "data": "applyStartTime" },
+            { "data": "applyCompleteTime" },
+        ]
+    } );
+    $('<button class="table-button" id="refresh">Refresh</button>').appendTo('div.dataTables_filter');
+    // Add event listener for opening and closing details
+  
+    $('#plans tbody').on('click', 'tr', function () {
+        var data = table.row( this ).data();
+        location.href = '/plan/'+data['planName'];
+    } );
+
+} );
+
+</script>
+
+{% endblock %}

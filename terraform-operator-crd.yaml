@@ -2,6 +2,96 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
+  name: clustermoduletemplates.terraform.dst.io
+spec:
+  group: terraform.dst.io
+  names:
+    kind: ClusterModuleTemplate
+    plural: clustermoduletemplates
+    singular: clustermoduletemplate
+    shortNames:
+      - clmodtpls
+      - clmodtpl
+  scope: Cluster
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          required:
+          - spec
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                defaultAttributes:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                requiredAttributes:
+                  type: array
+                  items:
+                    type: string
+                environments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      defaultAttributes:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: moduletemplates.terraform.dst.io
+spec:
+  group: terraform.dst.io
+  scope: Namespaced
+  names:
+    kind: ModuleTemplate
+    plural: moduletemplates
+    singular: moduletemplate
+    shortNames:
+      - modtpls
+      - modtpl
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          required:
+          - spec
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                defaultAttributes:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                requiredAttributes:
+                  type: array
+                  items:
+                    type: string
+                environments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      defaultAttributes:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
   name: modules.terraform.dst.io
 spec:
   scope: Namespaced
@@ -20,10 +110,18 @@ spec:
       subresources:
         status: {}
       additionalPrinterColumns:
-      - jsonPath: .spec.type
-        name: type
+      - jsonPath: .spec.clusterModuleTemplate
+        name: clusterModuleTemplate
         type: string
-        description: Type
+        description: moduleTemplate
+      - jsonPath: .spec.moduleTemplate
+        name: moduleTemplate
+        type: string
+        description: moduleTemplate
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      
       schema:
         openAPIV3Schema:
           type: object
@@ -38,11 +136,73 @@ spec:
                 autoPlanRequest:
                   type: boolean
                   default: true
-                type:
-                  type: string
                 attributes:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
+                #todo: mutual exclude tpl
+                clusterModuleTemplate:
+                  type: string
+                moduleTemplate:
+                  type: string
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterproviders.terraform.dst.io
+spec:
+  scope: Cluster
+  group: terraform.dst.io
+  names:
+    kind: ClusterProvider
+    plural: clusterproviders
+    singular: clusterprovider
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.autoPlanRequest
+        name: autoPlanRequest
+        type: string
+        description: autoPlanRequest
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              required:
+              - autoPlanRequest
+              - type
+              type: object
+              properties:
+                autoPlanRequest:
+                  type: boolean
+                type:
+                  type: string
+                defaultAttributes:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                requiredAttributes:
+                  type: array
+                  items:
+                    type: string
+                environments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      defaultAttributes:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -66,6 +226,9 @@ spec:
         name: autoPlanRequest
         type: string
         description: autoPlanRequest
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
       schema:
         openAPIV3Schema:
           type: object
@@ -75,16 +238,30 @@ spec:
             spec:
               required:
               - autoPlanRequest
-              - attributes
+              - type
               type: object
               properties:
                 autoPlanRequest:
                   type: boolean
                 type:
                   type: string
-                attributes:
+                defaultAttributes:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
+                requiredAttributes:
+                  type: array
+                  items:
+                    type: string
+                environments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      defaultAttributes:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -111,6 +288,13 @@ spec:
         name: deletePlanOnDeleted
         type: string
         description: deletePlanOnDeleted
+      - jsonPath: .status.plans
+        name: plans
+        type: string
+        description: Associated plans
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
       schema:
         openAPIV3Schema:
           type: object
@@ -160,15 +344,26 @@ spec:
       - jsonPath: .spec.autoPlanRequest
         name: autoPlanRequest
         type: string
-        description: deleteJobsOnPlanDeleted
+        description: autoPlanRequest
       - jsonPath: .spec.deleteJobsOnPlanDeleted
         name: deleteJobsOnPlanDeleted
         type: string
-        description: deletePlansOnPlanDeleted
+        description: deleteJobsOnPlanDeleted
       - jsonPath: .spec.deletePlansOnPlanDeleted
         name: deletePlansOnPlanDeleted
         type: string
         description: deletePlansOnPlanDeleted
+      - jsonPath: .spec.clusterProviders
+        name: clusterProviders
+        type: string
+        description: Clusters Providers
+      - jsonPath: .spec.environment
+        name: environment
+        type: string
+        description: Environment
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
       schema:
         openAPIV3Schema:
           type: object
@@ -183,6 +378,14 @@ spec:
               - deletePlansOnPlanDeleted
               type: object
               properties:
+                customTerraformInit:
+                  type: string
+                clusterProviders:
+                  type: array
+                  items:
+                    type: string
+                environment:
+                  type: string
                 autoPlanApprove:
                   type: boolean
                 autoPlanRequest:
@@ -211,9 +414,6 @@ spec:
                   - IfNotPresent
                   - Never
                   default: Always
-                types:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -265,7 +465,9 @@ spec:
         description: Apply Complete Time
         name: applyCompleteTime
         type: string 
-
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
       schema:
         openAPIV3Schema:
           type: object

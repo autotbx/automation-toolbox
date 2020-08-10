@@ -50,12 +50,12 @@ def createJob(namespace, name, tftype, planRequest):
     backoff_limit = 1
   elif tftype == "apply":
    # tf_args = ["env; kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; cd /tf; terraform init; terraform show /tmp/plan;"]
-    tf_args = ["env; kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; cd /tf; terraform init; terraform apply /tmp/plan;"]
+    tf_args = ["kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; cd /tf; terraform init; terraform apply /tmp/plan;"]
     restart_policy = "Never"
     backoff_limit = 0
   elif tftype == "plan":
-    tf_args = ["env; cd /tf && cat *.tf;  terraform init && terraform plan $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
-    restart_policy = "OnFailure"
+    tf_args = ["cd /tf;  terraform init && terraform plan $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
+    restart_policy = "Never" #logs on onFailure/?
     backoff_limit = 1
   else:
     return False
@@ -132,6 +132,7 @@ def login_fn(**kwargs):
     return kopf.login_via_client(**kwargs)
 
 ## autoPlanRequest handlers
+# TODO: handle cluster* / deletedModule
 @kopf.on.create(API_GROUP, API_VERSION, 'modules')
 @kopf.on.update(API_GROUP, API_VERSION, 'modules')
 @kopf.on.update(API_GROUP, API_VERSION, 'states')

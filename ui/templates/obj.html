@@ -19,16 +19,16 @@
     <div class="row">
       <div class="col cust">
         <h4><span class="blue">Specitications</span></h4>
-
         {% for k in obj['spec'] %}
         <div class="container">
             <div class="row">
-                <!-- TODO HERE -->
               <div class="col">
-                {{k}}
+                <strong>{{k}}</strong>
               </div>
               <div class="col-6">
+                <span class="blue">
                 {{ obj['spec'][k]|yaml|safe  }}
+                </span>
               </div>
             </div>
         </div>

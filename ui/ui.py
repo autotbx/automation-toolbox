@@ -167,8 +167,6 @@ def newCluster(plural):
 
 @app.route('/<plural>', methods=['GET', 'POST'])
 @app.route('/<plural>/', methods=['GET', 'POST'])
-@app.route('/cluster/<plural>', methods=['GET', 'POST'])
-@app.route('/cluster/<plural>/', methods=['GET', 'POST'])
 def plural(plural):
   if plural not in plurals:
     abort(404)
@@ -177,6 +175,19 @@ def plural(plural):
     plural = plural
     m = [{ "name" : "NS", "field": "namespace"}] + utils.apiMapping(plural)
     table, js = utils.genTable(m, plural, f'/api/{plural}')
+    return render_template("objs.html", plural=plural, objs=plural.title(), pluralTitle=plural.title(), namespace=None, table=table, js=js, namespaces=utils.getNamespace())
+  else:
+    abort(404) 
+  
+@app.route('/cluster/<plural>', methods=['GET', 'POST'])
+@app.route('/cluster/<plural>/', methods=['GET', 'POST'])
+def clusterPlural(plural):
+  if plural not in plurals:
+    abort(404)
+
+  if plural in plurals:
+    plural = plural
+    table, js = utils.genTable(utils.apiMapping(plural), plural, f'/api/{plural}')
     return render_template("objs.html", plural=plural, objs=plural.title(), pluralTitle=plural.title(), namespace=None, table=table, js=js, namespaces=utils.getNamespace())
   else:
     abort(404) 
@@ -194,7 +205,6 @@ def pluralName(plural, name):
 def pluralNamespaced(plural, namespace):
   if plural not in plurals:
     abort(404)
-  print('hh')
   
   cluster = plural.startswith('cluster') 
   kind = utils.formatApiKind(plural)

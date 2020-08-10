@@ -84,14 +84,14 @@ def formatKind(kind, obj):
       'type' : obj["spec"]["type"] if "type" in obj["spec"] else "",
       'autoPlanRequest' : obj['spec']['autoPlanRequest'],
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
-      'namespace':  nslink if "namespace" in obj["meta"] else None
+      'namespace':  nslink if "namespace" in obj["metadata"] else None
     }
   elif kind == "moduletemplates" or kind == "clustermoduletemplates":
     return {
       'name' : link,
       "requiredAttributes" : ','.join(obj["spec"]["requiredAttributes"]) if "requiredAttributes" in obj["spec"] else "",
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
-      'namespace' :  nslink if "namespace" in obj["meta"] else None
+      'namespace' :  nslink if "namespace" in obj["metadata"] else None
     }
   elif kind == "modules":
     return {

@@ -1,10 +1,11 @@
-apiVersion: dst.org/v1
+apiVersion: terraform.dst.io/v1
 kind: Module
 metadata:
   name: mymod2
+  label:
 spec:
-  autoPlanRequest: true
-  type: VMwareVirtualMachine
+  autoPlanRequest: false
+  clusterModuleTemplate: svvm
   attributes:
     vmnames:
     - dst-tf-k8s2

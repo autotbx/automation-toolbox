@@ -1,12 +1,12 @@
-apiVersion: dst.org/v1
+apiVersion: terraform.dst.io/v1
 kind: Provider
 metadata:
   name: vcsa
 spec:
   type: vsphere
   autoPlanRequest: true
-  attributes:
-    user: "administrator@vsphere.local"
-    password: "******"
-    vsphere_server: vcsa.lab.local
+  defaultAttributes:
+    user: "yyyy"
+    password: "xxxx"
+    vsphere_server: "zzzz"
     allow_unverified_ssl: true

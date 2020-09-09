@@ -1,22 +1,14 @@
-apiVersion: dst.org/v1
+apiVersion: terraform.dst.io/v1
 kind: State
 metadata:
   name: mystate
 spec:
+  clusterProviders:
+  - vcsa
+#  environment: dev
   autoPlanApprove: false
   autoPlanRequest: true
   deleteJobsOnPlanDeleted: true
   deletePlansOnPlanDeleted: true
-  types:
-    VMwareVirtualMachine:
-      network_name : vm_network
-      dns_servers:
-      - 8.8.8.8
-      domain: lab.local
-      folder_path: myvms
-      datacenter_name: DatacenterName
-      cluster_name: ClusterName
-      datastore_name: DataStoreName
-      template_name: TemplateName
-      source: "git::http://your-terraform-module.git"
+  customTerraformInit: 'required_providers { vsphere = "= 1.15" }'
 ---

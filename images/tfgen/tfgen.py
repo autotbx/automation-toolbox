@@ -13,9 +13,22 @@ API_VERSION = 'v1'
 def printError(err):
   stderr.write(f"{err}\n")
 
-  #required_providers {
-	#vsphere = "= 1.15"
-	#}
+try:
+    config.load_kube_config()
+except:
+    config.load_incluster_config()
+
+namespace = os.environ.get("K8S_NAMESPACE", "default")
+out_file = os.environ.get("TF_PATH", "/tmp/main.tf")
+in_kubernetes = os.environ.get("KUBERNETES_PORT",  False)
+state =  os.environ.get("STATE")
+if state == None:
+  printError('STATE env var name not, exiting')
+  exit(1)
+
+api_instance = client.CustomObjectsApi()
+errors = []
+
 template = '''terraform {
   {{customTerraformInit}}
   backend "kubernetes" {
@@ -25,6 +38,7 @@ template = '''terraform {
     load_config_file = true
     {%- endif %}
     secret_suffix = "{{state}}"
+    namespace = "{{namespace}}"
   }
 }
 {%- for provider in providers %}
@@ -40,23 +54,14 @@ module "{{module}}" {
   {{key}} = {{ modules[module][key] }}
   {%- endfor %}
 }
+{%- for output in outputs[module] %}
+output "{{module}}_{{output["name"]}}" {
+  value = "module.{{module}}.{{output["value"]}}"
+}
 {%- endfor %}
+{%- endfor %}
+
 ''' 
-
-try:
-    config.load_kube_config()
-except:
-    config.load_incluster_config()
-
-namespace = os.environ.get("K8S_NAMESPACE", "default")
-out_file = os.environ.get("TF_PATH", "/tmp/main.tf")
-in_kubernetes = os.environ.get("KUBERNETES_PORT",  False)
-state =  os.environ.get("STATE")
-if state == None:
-  printError('STATE env var name not, exiting')
-  exit(1)
-
-api_instance = client.CustomObjectsApi()
 
 def formatAttr(objs):
   for key in objs:
@@ -113,7 +118,7 @@ if 'clusterProviders' in state['spec']:
     try:
       realProviders.append(api_instance.get_cluster_custom_object(API_GROUP, API_VERSION, 'clusterproviders', clusterProvider))
     except ApiException as e:
-      printError("[clusterProvidersSKIP] Exception when calling CustomObjectsApi->get_namespaced_custom_object: %s" % e)
+      errors.append("[clusterProvidersSKIP] Exception when calling CustomObjectsApi->get_namespaced_custom_object: %s" % e)
 
 # provider Overwritten by ClusterProvider if same type 
 fproviders = {}
@@ -121,6 +126,7 @@ for provider in realProviders:
   fproviders[provider['spec']['type']] = formatAttr(getAttr(provider, stateEnv))
 
 fmodules = {}
+foutputs = {}
 for module in modules:
   tpl = None
   moduleName = module['metadata']['name']
@@ -129,13 +135,13 @@ for module in modules:
     try:
       tpl = api_instance.get_cluster_custom_object(API_GROUP, API_VERSION, 'clustermoduletemplates', module['spec']['clusterModuleTemplate'])
     except ApiException as e:
-      printError(f"[MODULESKIP] {moduleName}: Exception when calling CustomObjectsApi->get_cluster_custom_object: %s" % e)
+      errors.append(f"[MODULESKIP] {moduleName}: Exception when calling CustomObjectsApi->get_cluster_custom_object: %s" % e)
       continue
   elif 'moduleTemplate' in module['spec']:
     try:
       tpl = api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, 'moduletemplates', module['metadata']['namespace'], module['spec']['clusterModuleTemplate'])
     except ApiException as e:
-      printError(f"[MODULESKIP] {moduleName}: Exception when calling CustomObjectsApi->get_cluster_custom_object: %s" % e)
+      errors.append(f"[MODULESKIP] {moduleName}: Exception when calling CustomObjectsApi->get_cluster_custom_object: %s" % e)
       continue
   if tpl != None:
     if 'requiredAttributes' in tpl['spec']:
@@ -144,7 +150,7 @@ for module in modules:
         if requiredAttribute not in module['spec']['attributes']:
           missingRequiredAttributes.append(requiredAttribute)
       if len(missingRequiredAttributes) != 0:
-        printError(f"[MODULESKIP] {moduleName} : template {tpl['metadata']['name']}, missing requiredAttributes {missingRequiredAttributes}")
+        errors.append(f"[MODULESKIP] {moduleName} : template {tpl['metadata']['name']}, missing requiredAttributes {missingRequiredAttributes}")
         continue
     attributes = formatAttr(getAttr(tpl, stateEnv))
     modAttributes = formatAttr(module['spec']['attributes'])
@@ -153,11 +159,18 @@ for module in modules:
       attributes[attribute] = modAttributes[attribute]
   else:
     attributes = module['spec']['attributes']
+  if "outputs" in module["spec"]:
+    foutputs[moduleName] = module["spec"]["outputs"]
 
   fmodules[moduleName] = attributes
 
+if len(errors) != 0:
+  printError('ERROR: Unresolved references')
+  printError("\n".join(errors))
+  exit(1)
+
 t = Template(template)
-rendered = t.render(state=state['metadata']['name'],customTerraformInit=customTerraformInit, modules=fmodules, providers=fproviders, in_kubernetes=in_kubernetes)
+rendered = t.render(state=state['metadata']['name'],customTerraformInit=customTerraformInit, modules=fmodules, outputs=foutputs, providers=fproviders, in_kubernetes=in_kubernetes, namespace=namespace)
 
 print(rendered)
 with open(out_file, 'w') as f:

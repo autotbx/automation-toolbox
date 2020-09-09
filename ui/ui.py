@@ -226,7 +226,7 @@ def pluralNamespaced(plural, namespace):
           body['metadata'] = client.V1ObjectMeta(name=f'{request.form["name"]}')
         else:
           body['metadata'] = client.V1ObjectMeta(name=f'{request.form["name"]}', namespace=namespace)
-
+      #TODO: patch strategy (old yaml value are kept atm)
       if cluster:
         try:
           if request.args.get('new') == "true":

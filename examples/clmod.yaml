@@ -1,0 +1,24 @@
+apiVersion: terraform.dst.io/v1
+kind: ClusterModuleTemplate
+metadata:
+  name: svvm
+spec:
+  requiredAttributes:
+  - vmnames
+  - num_cpus
+  - memory
+  defaultAttributes:
+    network_name : vm_network
+    dns_servers:
+    - 172.19.36.2
+    domain: vm.lab.platform-essential.com
+    folder_path: dst
+    datacenter_name: Datacenter
+    cluster_name: VxRail
+    datastore_name: VSAN
+    template_name: ubuntu-1804-tpl-davy
+    source: "git::http://toolbox.vm.lab.platform-essential.com/toolbox-repos/terraform-module-svvm.git"
+  environments:
+  - name: dev
+    defaultAttributes:
+      folder_path: 'dst-dev'

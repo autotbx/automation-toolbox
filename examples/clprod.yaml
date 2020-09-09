@@ -1,0 +1,33 @@
+apiVersion: terraform.dst.io/v1
+kind: ClusterProvider
+metadata:
+  name: vcsa
+spec:
+  type: vsphere
+  autoPlanRequest: true
+  defaultAttributes:
+    user: "toolbox2@lab.platform-essential.com"
+    password: "Toolbox12*"
+    vsphere_server: vcsa.mgt.lab.platform-essential.com
+    allow_unverified_ssl: true
+  environments:
+  - name: dev
+    defaultAttributes:
+      user: 'XXXX'
+---
+apiVersion: terraform.dst.io/v1
+kind: ClusterProvider
+metadata:
+  name: vcsa2
+spec:
+  type: vsphere
+  autoPlanRequest: true
+  defaultAttributes:
+    user: "toolbox2@lab.platform-essential.com"
+    password: "Toolbox12*"
+    vsphere_server: vcsa.mgt.lab.platform-essential.com
+    allow_unverified_ssl: true
+  environments:
+  - name: dev
+    defaultAttributes:
+      user: 'XXXX'

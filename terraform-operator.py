@@ -15,6 +15,12 @@ TERRAFORM_DELIMETER="-----------------------------------------------------------
 custom_api_instance = kubernetes.client.CustomObjectsApi(kubernetes.client.ApiClient(configuration))
 batch_api_instance = kubernetes.client.BatchV1Api(kubernetes.client.ApiClient(configuration))
 core_api_instance = kubernetes.client.CoreV1Api(kubernetes.client.ApiClient(configuration))
+#TODO:
+# deny multiple apply job for same state
+# plans : use conditions
+# jobsLog if failed
+# realTime joblog ?
+
 
 def updateCustomStatus(logger, plural, namespace, name, vals):
   currentStatus = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, plural, name)
@@ -56,7 +62,7 @@ def createJob(namespace, name, tftype, planRequest):
   elif tftype == "plan":
     tf_args = ["cd /tf;  terraform init && terraform plan $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
     restart_policy = "Never" #logs on onFailure/?
-    backoff_limit = 1
+    backoff_limit = 0
   else:
     return False
     
@@ -124,7 +130,10 @@ def get_pod_log(logger, namespace, jobName):
   try:
     log = core_api_instance.read_namespaced_pod_log(pod.metadata.name, namespace)
   except ApiException as e:
-    log = e
+    try:
+      log = core_api_instance.read_namespaced_pod_log(pod.metadata.name, namespace, container="gentf")
+    except ApiException as e:
+         log = str(e)
   return log
 
 @kopf.on.login()
@@ -139,7 +148,6 @@ def login_fn(**kwargs):
 @kopf.on.update(API_GROUP, API_VERSION, 'providers')
 def autoPlan(body, name, namespace, logger, **kwargs):
   if body.spec['autoPlanRequest']:
-    #TODO: spec 
     requestPlan = {
         'apiVersion': f'{API_GROUP}/{API_VERSION}',
         'kind': 'PlanRequest',

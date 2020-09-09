@@ -55,7 +55,9 @@
                 <form  action="/plans/{{namespace}}">
                     <input type="hidden" name="name" value="{{ plan['metadata']['name']}}" />
                     <input type="hidden" name="approve" value="true" />
+                    {% if plan['status']['planStatus'] != "Failed" %}
                     <button type="submit" type="button" id="approve" class="btn btn-secondary btn-lg btn-block">Approve this plan</button>
+                    {% endif %}
                 </form>
                 {% endif %}
             </div>

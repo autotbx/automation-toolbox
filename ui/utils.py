@@ -442,8 +442,8 @@ def editForm(form, plural, obj):
     elif plural == "modules":
         form = updateForm(form, "name", "value", obj['metadata']['name'])
         form = updateForm(form, "name", "disabled", True)
-        form = updateForm(form, "moduleTemplate", "values", obj['spec']['moduleTemplate']  if 'moduleTemplate' in obj["spec"] else "")
-        form = updateForm(form, "clusterModuleTemplate", "values", obj['spec']['clusterModuleTemplate']  if 'clusterModuleTemplate' in obj["spec"] else "")
+        form = updateForm(form, "moduleTemplate", "value", obj['spec']['moduleTemplate']  if 'moduleTemplate' in obj["spec"] else "")
+        form = updateForm(form, "clusterModuleTemplate", "value", obj['spec']['clusterModuleTemplate']  if 'clusterModuleTemplate' in obj["spec"] else "")
         form = updateForm(form, "attributes", "value", obj['spec']['attributes'])
         form = updateForm(form, "autoPlanRequest", "value", obj['spec']['autoPlanRequest'])
     return form

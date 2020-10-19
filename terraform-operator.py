@@ -5,7 +5,11 @@ import kubernetes.client
 from kubernetes.client.rest import ApiException
 import re
 
-config.load_kube_config()
+try:
+    config.load_kube_config()
+except:
+    config.load_incluster_config()
+
 configuration = kubernetes.client.Configuration()
 
 API_GROUP = 'terraform.dst.io'
@@ -136,9 +140,9 @@ def get_pod_log(logger, namespace, jobName):
          log = str(e)
   return log
 
-@kopf.on.login()
-def login_fn(**kwargs):
-    return kopf.login_via_client(**kwargs)
+#@kopf.on.login()
+#def login_fn(**kwargs):
+#    return kopf.login_via_client(**kwargs)
 
 ## autoPlanRequest handlers
 # TODO: handle cluster* / deletedModule

@@ -2,6 +2,8 @@ serviceAccount in state
 matching labels for mod/provider in the state
 configMap for state/type/other?
 job.spec.ttlSecondsAfterFinished with config
+tf*image/imagePolicy: heritage?
+review deleteJobsOnDeleted/deletePlansOnDeleted implem
 
 condition best pracitces
 review tf outputs

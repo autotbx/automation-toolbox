@@ -59,7 +59,7 @@ The operator will manage automatically the Staled plan & Locked state scenario.
 
 ## Environment support
 
-Environment support is a feature that enable the following object to overwrite attributes from the defaultAttributes for the **working environment*:
+Environment support is a feature that enable the following object to overwrite attributes from the defaultAttributes for the **working environment**:
 
 * ClusterModuleTemplate
 * ModuleTemplate
@@ -177,13 +177,102 @@ spec:
 ```
 
 ## States
+
+This object define the state properties
+
+| variable | type | required | default | Description |
+|----------|----------|----------|---------|-------|
+|metadata.name | string |true |         |Name of the state|
+|spec.clusterProviders |array[string]|false      |         |Provider to include in this state|
+|spec.autoPlanRequest|boolean|true||Create auto PlanRequest if modified|
+|spec.autoPlanApprove|boolean|true||Automatically approve generated plan|
+|spec.deleteJobsOnPlanDeleted| boolean |true||Delete jobs created by the deleted plan|
+|spec.deletePlansOnPlanDeleted| boolean |true||todo|
+|spec.customTerraformInit| string |false|| Custom terraform section { } code|
+|spec.tfGeneratorImage| string |false|TODO| Terraform code generator image pulling path|
+|spec.tfExecutorImage| string |false|TODO| Terraform executor image pulling path|
+|spec.tfGeneratorImagePullPolicy| string |false|TODO| erraform code generator image policy|
+|spec.tfExecutorImagePullPolicy| string |false|TODO| erraform code generator image policy|
+
+```
+apiVersion: terraform.dst.io/v1
+kind: State
+metadata:
+  name: mystate
+spec:
+  clusterProviders:
+  - vcsa
+  environment: dev
+  autoPlanApprove: false
+  autoPlanRequest: true
+  deleteJobsOnPlanDeleted: true
+  deletePlansOnPlanDeleted: true
+  customTerraformInit: 'required_providers { vsphere = "= 1.15" }'
+```
+
 ## Modules
 ### ClusterModuleTemplates/ModuleTemplates
+
+ModuleTemplates can be consumed by a Module to provides default configuration with the possibilities to overwrite specific parameters
+
+| variable | type | required | default | Description |
+|----------|----------|----------|---------|-------|
+|metadata.name | string |true |         |Name of the PlanRequest|
+|spec.requiredAttributes|array[string]|true      |         |Required attributes for module that consume this template|
+|spec.defaultAttributes|object|true      |         |Default attributes for module that consume this template|
+|spec.environments|array[object]|false      |         |Default attributes for module that consume this template in the specify environment|
+
+```
+apiVersion: terraform.dst.io/v1
+kind: ClusterModuleTemplate
+metadata:
+  name: svvm
+spec:
+  requiredAttributes:
+  - vmnames
+  - num_cpus
+  - memory
+  defaultAttributes:
+    network_name : vm_network
+    dns_servers:
+    - 172.19.36.2
+    domain: vm.lab.platform-essential.com
+    folder_path: dst
+    datacenter_name: Datacenter
+    cluster_name: VxRail
+    datastore_name: VSAN
+    template_name: ubuntu-1804-tpl-davy
+    source: "git::http://toolbox.vm.lab.platform-essential.com/toolbox-repos/terraform-module-svvm.git"
+  environments:
+  - name: dev
+    defaultAttributes:
+      folder_path: 'dst-dev'
+ ```
+
 ## PlanRequests
+
+PlanRequest are used to request the generation of a new Plan.
+
+| variable | type | required | default | Description |
+|----------|----------|----------|---------|-------|
+|metadata.name | string |true |         |Name of the PlanRequest|
+|spec.deletePlanOnDeleted |boolean|false      |false         |Delete generated Plan on deletion|
+|spec.targets|array[string]|false||Target limitation during terraform operation|
+
+
 ## Plans
 
+Plan is the equivalent of the terraform plan/apply. You should create this object as they are created by the PlanRequest object.
 
-
+| variable | type | required | default | Description |
+|----------|----------|----------|---------|-------|
+|metadata.name | string |true |         |Name of the Plan|
+|spec.approved |boolean]|true      |         |Approved plan (ie terraform apply will run with this plan)|
+|spec.targets|array[string]|false||Target limitation during terraform operation|
+|spec.tfGeneratorImage| string |false|TODO| Terraform code generator image pulling path|
+|spec.tfExecutorImage| string |false|TODO| Terraform executor image pulling path|
+|spec.tfGeneratorImagePullPolicy| string |false|TODO| erraform code generator image policy|
+|spec.tfExecutorImagePullPolicy| string |false|TODO| erraform code generator image policy|
 
 
 

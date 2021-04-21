@@ -1,9 +1,13 @@
+# TODO remove disable when refactoring file
+# pylint: disable=bad-indentation
 import kopf
 import kubernetes
 from kubernetes import client, config, utils
 import kubernetes.client
+from kubernetes.client.models.v1_config_map_volume_source import V1ConfigMapVolumeSource
 from kubernetes.client.rest import ApiException
 import re
+import logging
 
 try:
     config.load_kube_config()
@@ -11,6 +15,8 @@ except:
     config.load_incluster_config()
 
 configuration = kubernetes.client.Configuration()
+configuration.debug = True
+configuration.logger_file = '/tmp/k8s.log'
 
 API_GROUP = 'terraform.dst.io'
 API_VERSION = 'v1'
@@ -27,7 +33,10 @@ core_api_instance = kubernetes.client.CoreV1Api(kubernetes.client.ApiClient(conf
 
 
 def updateCustomStatus(logger, plural, namespace, name, vals):
-  currentStatus = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, plural, name)
+  try:
+    currentStatus = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, plural, name)
+  except client.ApiException:
+    currentStatus = {}
   if 'status' in currentStatus:
     status = currentStatus['status']
   else:
@@ -88,7 +97,8 @@ def createJob(namespace, name, tftype, planRequest):
   env_tf_secret = client.V1EnvVar(name="K8S_SECRET", value=f"tf-plan-{name}")
   env_tf_path = client.V1EnvVar(name="TF_PATH", value="/tf/main.tf")
   env_tf_ns_val  = client.V1EnvVarSource(field_ref=client.V1ObjectFieldSelector(field_path="metadata.namespace"))
-  env_tf_ns = client.V1EnvVar(name="K8S_NAMESPACE", value_from=env_tf_ns_val)
+  #env_tf_ns = client.V1EnvVar(name="K8S_NAMESPACE", value_from=env_tf_ns_val)
+  env_tf_ns = client.V1EnvVar(name="K8S_NAMESPACE", value="default")
   env = [env_tf_ns, env_tf_path, env_tf_secret, env_tf_target, env_tf_state]
   vols_mount = [client.V1VolumeMount(name="tf", mount_path="/tf")]
 
@@ -264,7 +274,10 @@ def applyStatus(diff, status, namespace, logger, body, **kwargs):
 
   if diff[0][2] != "Failed" and diff[0][3] == "Failed":
     logger.error(f'Plan {body.metadata["name"]} applying failed')
-    log = get_pod_log(logger, namespace, body.status['applyJob'])
+    try: 
+      log = get_pod_log(logger, namespace, body.status['applyJob'])
+    except kubernetes.client.ApiException:
+      log = "pod not found"
     updateCustomStatus(logger, 'plans', namespace, body.metadata.name, {'applyOutput' : log})
     if "Saved plan is stale" in log:
       logger.info(f"Saved plan is stale, trying to request a new plan with OriginalPlan {body.metadata.name}")
@@ -276,7 +289,7 @@ def applyStatus(diff, status, namespace, logger, body, **kwargs):
     logger.info(f'Plan {body.metadata["name"]} become Active')
 
 @kopf.on.delete(API_GROUP, API_VERSION, 'plans')
-def planDelete(body, name, namespace, logger, event, **kwargs):
+def planDelete(body, name, namespace, logger, **kwargs):
   logger.info(f"Deleting plan {name}[{namespace}], cleaning associate planOutputs & job")
   if body.spec["deletePlansOnDeleted"]: 
     secretPlan = f'tf-plan-{name}'
@@ -299,7 +312,7 @@ def planDelete(body, name, namespace, logger, event, **kwargs):
         return
 
 @kopf.on.delete(API_GROUP, API_VERSION, 'planrequests')
-def planRequestDelete(body, name, namespace, logger, event, **kwargs):
+def planRequestDelete(body, name, namespace, logger,  **kwargs):
   if "spec" in body and body['spec']["deletePlanOnDeleted"]: 
     try:
       a = body['status']['plans']
@@ -313,13 +326,126 @@ def planRequestDelete(body, name, namespace, logger, event, **kwargs):
         logger.error(f"Exception when trying to delete plan {plan} : {e}")
         return
 
+## ANSIBLE handlers
+
+#def create_ansible_run():
+#  originalPlanRequest = originalPlanRequest if originalPlanRequest != None else planRequest
+#  annotations = {'planRequest': originalPlanRequest}
+#  body = {
+#      'apiVersion': f'{API_GROUP}/{API_VERSION}',
+#      'kind': 'Plan',
+#      'metadata' : client.V1ObjectMeta(annotations=annotations, generate_name=f'{stateName}-', namespace=namespace),
+#      'spec': {
+#        "approved": False if originalPlan != None else state["spec"]["autoPlanApprove"],
+#        "deleteJobsOnDeleted": state["spec"]['deleteJobsOnPlanDeleted'],
+#        "deletePlansOnDeleted": state["spec"]['deletePlansOnPlanDeleted'],
+#        "state": state["metadata"]["name"],
+#        "tfGeneratorImage" : state["spec"]["tfGeneratorImage"],
+#        "tfGeneratorImagePullPolicy": state["spec"]["tfGeneratorImagePullPolicy"],
+#        "tfExecutorImage" : state["spec"]["tfExecutorImage"],
+#        "tfExecutorImagePullPolicy" : state["spec"]["tfExecutorImagePullPolicy"]
+#      }
+#  }
+#  if targets != None:
+#    body['spec']['targets'] = targets
+#  if originalPlan != None:
+#    body['spec']['originalPlan'] = originalPlan
+#  
+#  try:
+#    response = custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', body)
+#    logger.info(f'Plan {response["metadata"]["name"]} successfully created for PlanRequest {planRequest}')
+#    status = {'plans': [response["metadata"]["name"]]}
+#    updateCustomStatus(logger, 'planrequests', namespace, originalPlanRequest, status)
+#  except ApiException as e:
+#    logger.error("Exception when calling CustomObjectsApi->create_namespaced_custom_object: %s\n" % e)
+#  except Exception as e:
+#    logger.error(f'Failed to create plan for planRequest{planRequest}[{namespace}] in state {state["metadata"]["name"]}: {e}')
+
+def _ansible_run(name, namespace, check):
+  run_args = ["cat /data/inventory.yaml; ansible-playbook -D -i /data/inventory.yaml /data/playbook.yaml; ls /config ; cat /config/ansible.cfg; cat /tmp/ansible.log"]
+  restart_policy = "Never"
+  backoff_limit = 0
+
+  share_vol_mount = client.V1VolumeMount(name="data", mount_path="/data")
+  config_vol_mount = client.V1VolumeMount(name="ansible-config", mount_path="/config", read_only=True)
+    
+  #TODO tf_container_image = planRequest.spec["tfExecutorImage"]
+  a5e_container_name = "ansible"
+  a5e_container_image = "harbor.pks.lab.platform-essential.com/library/ansible"
+  a5e_command = [ "/bin/sh", "-x", "-c"]
+  a5e_vols_mounts = [config_vol_mount, share_vol_mount]
+  #TODO tf_image_policy = planRequest.spec["tfExecutorImagePullPolicy"]
+
+  gen_a5e_container_name  = "ansible-gen"
+  gen_a5e_container_image ="harbor.pks.lab.platform-essential.com/library/ansible-gen" 
+  gen_a5e_command = ["/bin/sh", "-x", "-c"]
+  gen_a5e_args = ["cp /config/certs /usr/local/share/ca-certificates/local.crt ; update-ca-certificates ; python ansible-gen.py"]
+  gen_a5e_vols_mount = [config_vol_mount, share_vol_mount]
+
+  #TODO gentf_image_policy    = planRequest.spec["tfGeneratorImagePullPolicy"]
+
+  
+  #target_env = ' '.join([ f'-target={x}' for x in planRequest['spec']['targets']]) if 'targets' in planRequest['spec'] else ''
+  #env_tf_target = client.V1EnvVar(name="TF_TARGET", value=target_env)
+
+  #env_tf_state = client.V1EnvVar(name="STATE", value=planRequest.spec['state'])
+
+  #env_tf_secret = client.V1EnvVar(name="K8S_SECRET", value=f"tf-plan-{name}")
+  #env_tf_path = client.V1EnvVar(name="TF_PATH", value="/tf/main.tf")
+  #env_tf_ns_val  = client.V1EnvVarSource(field_ref=client.V1ObjectFieldSelector(field_path="metadata.namespace"))
+  ##env_tf_ns = client.V1EnvVar(name="K8S_NAMESPACE", value_from=env_tf_ns_val)
+  #env_tf_ns = client.V1EnvVar(name="K8S_NAMESPACE", value="default")
+  #env = [env_tf_ns, env_tf_path, env_tf_secret, env_tf_target, env_tf_state]
+  #vols_mount = [client.V1VolumeMount(name="tf", mount_path="/tf")]
+
+  env_ansible_config = client.V1EnvVar(name="ANSIBLE_CONFIG", value="/config/ansible.cfg")
+  env_ansible_log = client.V1EnvVar(name="ANSIBLE_LOG_PATH", value="/tmp/ansible.log")
+  env = [env_ansible_config, env_ansible_log]
+
+  a5e_container = client.V1Container(name=a5e_container_name, image=a5e_container_image, command=a5e_command,args=run_args, volume_mounts=a5e_vols_mounts, env=env)#, image_pull_policy=tf_image_policy, volume_mounts=vols_mount, env=env)
+  gen_a5e_container = client.V1Container(name=gen_a5e_container_name, image=gen_a5e_container_image, command=gen_a5e_command, args=gen_a5e_args, volume_mounts=gen_a5e_vols_mount)#, image_pull_policy=gentf_image_policy, env=env)
+
+  vols = [client.V1Volume(name="ansible-config", config_map=client.V1ConfigMapVolumeSource(name="ansible-config")), client.V1Volume(name="data", empty_dir={})]
+
+
+  template = client.V1PodTemplate()
+  template.template = client.V1PodTemplateSpec()
+  template.template.spec = client.V1PodSpec(containers=[a5e_container], init_containers=[gen_a5e_container], service_account_name="tfgen",restart_policy=restart_policy, automount_service_account_token=True, volumes=vols)#, volumes=[client.V1Volume(name="tf", empty_dir={})])
+  
+  body = client.V1Job()
+  body.metadata = client.V1ObjectMeta(namespace=namespace, generate_name=f"ans-{name}-", labels={"app": "ansible"}, annotations={'ansibleRun': name})#, 'type': tftype})
+  body.status = client.V1JobStatus()
+  #todo config backoff
+  body.spec = client.V1JobSpec(ttl_seconds_after_finished=600, template=template.template, backoff_limit=backoff_limit)
+  
+  try: 
+    api_response = batch_api_instance.create_namespaced_job("default", body, pretty=True)
+    return api_response.metadata.name
+  except ApiException as e:
+    print("Exception when calling BatchV1Api->create_namespaced_job: %s\n" % e)
+ #   print(e.args)
+ #   print(e.with_traceback)
+ #   print(body)
+    return False
+
+@kopf.on.create(API_GROUP, API_VERSION, 'ansiblerun')
+def ansible_run(body, name, namespace, logger, **kwargs):
+  #logging.getLogger("urllib3").setLevel(logging.DEBUG)
+  #import http.client
+  #http.client.HTTPConnection.debuglevel = 5
+
+  return _ansible_run(name, namespace, False)
+
+
+
 ## JOBS handlers
 @kopf.on.field('batch', 'v1', 'jobs', field="status.failed")
 def jobFailed(diff, status, namespace, logger, body, **kwargs):
   if diff == ():
     return
   try:
-    body["metadata"]["labels"]["app"] == "tfgen" == True
+    if body["metadata"]["labels"]["app"] != "tfgen":
+      return
   except:
     return
   tftype =  'apply' if body["metadata"]["annotations"]["type"] == "apply" else 'plan'
@@ -333,7 +459,8 @@ def jobSucceeded(diff, status, namespace, logger, body, **kwargs):
   if diff == ():
     return
   try:
-    body["metadata"]["labels"]["app"] == "tfgen" == True
+    if body["metadata"]["labels"]["app"] != "tfgen":
+      return
   except:
     return
   if diff[0][2] != True and diff[0][3] == True:
@@ -347,7 +474,8 @@ def jobActive(diff, status, namespace, logger, body, **kwargs):
   if diff == ():
     return
   try:
-    body["metadata"]["labels"]["app"] == "tfgen" == True
+    if body["metadata"]["labels"]["app"] != "tfgen":
+      return
   except:
     return
   if diff[0][2] != True and diff[0][3] == True:
@@ -361,7 +489,8 @@ def jobCondition(diff, status, namespace, logger, body, **kwargs):
   if diff == ():
     return
   try:
-    body["metadata"]["labels"]["app"] == "tfgen" == True
+    if body["metadata"]["labels"]["app"] != "tfgen":
+      return
   except:
     return
   tftype =  'apply' if body["metadata"]["annotations"]["type"] == "apply" else 'plan'
@@ -378,3 +507,9 @@ def jobCondition(diff, status, namespace, logger, body, **kwargs):
     if failed:
       status = {f'{tftype}Status' : 'Failed', f'{tftype}CompleteTime' : end}
       updateCustomStatus(logger, 'plans', namespace, body.metadata.annotations['planName'], status)
+
+
+
+@kopf.on.startup()
+def configure(settings: kopf.OperatorSettings, **_):
+    settings.posting.level = logging.DEBUG

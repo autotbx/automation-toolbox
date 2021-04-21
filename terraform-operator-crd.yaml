@@ -144,6 +144,10 @@ spec:
                   type: string
                 moduleTemplate:
                   type: string
+                ansibleAttributes:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                  # TODO: declare all expected fields
                 outputs:
                   type: array
                   items:
@@ -153,6 +157,63 @@ spec:
                         type: string
                       value:
                         type: string
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ansibleruns.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: AnsibleRun
+    plural: ansibleruns
+    singular: ansiblerun
+    shortNames:
+      - aruns
+      - arun
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              required:
+              - roles
+              - targets
+              type: object
+              properties:
+                roles:
+                  type: array
+                  items:
+                    type: string
+                targets:
+                  type: array
+                  items:
+                    type: string
+                ansibleResult:
+                  type: boolean
+                ansibleLog:
+                  type: string
+                ansibleCheckResult:
+                  type: boolean
+                ansibleLog:
+                  type: string
+                vars:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
 
 ---
 apiVersion: apiextensions.k8s.io/v1

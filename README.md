@@ -122,7 +122,7 @@ spec:
   defaultAttributes:
     user: "administrator@vsphere.local"
     password: "VMware123!"
-    vsphere_server: "https://vcsa.local"
+    vsphere_server: "vcsa.local"
     allow_unverified_ssl: true
 ```
 
@@ -132,7 +132,7 @@ will generated the corresponding terraform file :
 provider "vsphere" {
 	user     = "administrator@vsphere.local"
 	password = "VMware123!"
-	vsphere_server   = "https://vcsa.local""
+	vsphere_server   = "vcsa.local""
 	allow_unverified_ssl = true
 }
 
@@ -277,3 +277,98 @@ Plan is the equivalent of the terraform plan/apply. You should create this objec
 
 
 
+## Ansible
+
+Ansible runs are launched when a Terraform run is finished or manually when  a user request it
+
+```
+      +---+
+      |   |
+      |   |                        +---------------+
+      +-+-+                        |               |
+        |                          | TerraformRun  |
+        |  User                    |               |
+        |                          +-------+-------+
+        |                                  |
+        |                                  |
+     +--+--+                               |
+     |     |                               |
+     +  +  +                               |
+        |                                  |
+        |                                  |
+        |                                  |
+        |                                  v
+        v
+                                     AnsiblePlan   +
+AnsibleRunRequest  +-------------->                |
+                                         auto:     |
+                                           hosts:  +----> ansible-playbook -C
+                                             -
+                                             -
+                                         approved
+                                         executionDate
+                                         hostImpacted
+                                         diff
+                                         +
+                                         |
+                                         v
+
+                                     AnsibleRun
+                                                  +
+                                      ansiblePlan |
+                                                  +-----> ansible-playbook -C
+                                                             +
+                                                  <----------+
+
+                                                  +-----> ansible-playbook
+```
+
+The workflow is the following:
+
+When a Terraform apply is finished, a AnsiblePlan is created with the `auto`
+parameter, which contains the list of hosts impacted by Ansible (copied from
+the `ansibleArgs.hosts` from the module). `ansible-playbook -C` is run on all
+playbook, the output is parsed and the hosts impacted by the run are
+analysed. Only if `auto.hosts` is equal to `hostImpacted` is equal, the
+`ansible-plan is auto-approved.
+
+If a user create an `AnsibleRunRequest` the plan is created (without the
+`auto` parameter), a check is run and the plan must be manually approved to
+generate an `Ansiblerun `.
+
+If no changes are detected, the plan will not generate a run.
+
+When the plan is approved, an `AnsibleRun` is created, first, it will run
+`ansible-playbook` -C and validate that the diff of change from the plan are
+the same. If it's the same, `ansible-playbook` is run.
+
+### Modules
+
+To configure ansible in the module, the following args must be used:
+
+```yaml
+apiVersion: terraform.dst.io/v1
+kind: Module
+metadata:
+  name: mymod2
+  label:
+spec:
+  ...
+  ansibleArgs:
+    roles:
+      - exampleRole
+      - otherRole
+    hosts:
+      - myhost1:
+          override: value
+      - myhost2
+    vars:
+      abc: def
+      other: value
+```
+
+# TODO
+
+- Check what happens when CRD are created when ansible not there
+- Lock strategy when Ansible or Terraform job is running to prevent two jobs to run in the same namespace 
+- Retry strategy when a job is finished to launch waiting Ansible or Terraform jobs

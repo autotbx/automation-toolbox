@@ -351,6 +351,43 @@ When the plan is approved, an `AnsibleRun` is created, first, it will run
 `ansible-playbook` -C and validate that the diff of change from the plan are
 the same. If it's the same, `ansible-playbook` is run.
 
+### Ansible config
+
+Global ansible config must be defined in `ansible-config` ConfigMap, e.g.:
+
+```
+apiVersion: v1
+data:
+  ansible.cfg: |
+    [defaults]
+    log_file=/tmp/ansible.log
+  certs: |-
+    -----BEGIN CERTIFICATE-----
+    MIIDMzCCAhugAwIBAgIJANUZ1ChD0mPGMA0GCSqGSIb3DQEBCwUAMDAxLjAsBgNV
+    BAMMJXRvb2xib3gudm0ubGFiLnBsYXRmb3JtLWVzc2VudGlhbC5jb20wHhcNMjEw
+    MzE1MTgyODM1WhcNMzEwMzEzMTgyODM1WjAwMS4wLAYDVQQDDCV0b29sYm94LnZt
+    LmxhYi5wbGF0Zm9ybS1lc3NlbnRpYWwuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOC
+    AQ8AMIIBCgKCAQEAtsbi1Ag7WOujRQHDCOVQFtReON3rNpO+dBlXXuAH2ZYaVMJA
+    FzAHWI3IYY8bwT7VBWP2BmMLNHjPh17eeoC72FyeqvS3DNsWcZNnpDk64cljTEJC
+    d3dRJixIgFrufoa7oqa/fv8VdchGJgxExjpicd3gp6HW5+Tz+YsJ5qYhQgogJ/Kl
+    agthf3AGedGdoDIaU7zvzwkVt29fi425We4JVUXKhhb7jG17aWU2Oko5lgkFFy+1
+    7nJrXfSko1eFNv4SG0vC0flNlF0Hod3P7tdf0pDfmQ3fVp1jFP6W9m+swQeqtVzN
+    ae3vNBn7QXORgbm0KQzDeYS4/Pwq+9uz75SAjwIDAQABo1AwTjAdBgNVHQ4EFgQU
+    Nc51dwzwSuctHGxv8ookgGIQ3AswHwYDVR0jBBgwFoAUNc51dwzwSuctHGxv8ook
+    gGIQ3AswDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEADCKviNl9Xp1a
+    bsaoNKOjOX2hNc1xLLAyAEtWv1j38EhLcO8ya/iIu6fcCt/GJKhyXT+9W6A1lNkv
+    Fvh7PTtj34UWkgPLomJFalLFVgLjxXn0Rs+Oe+wgEh9JTzFXgJxzlY+7SkBSoFmH
+    N30Grp3YRE0KRb1lprtJOUstMnOSEttlq8hMczmhDkjZpJQTSBn5A3Fph4rWA7aF
+    cCjozMtmNLyc4yUeiXg7fr2TmLMpA9BEA+z+qWJDfCycqeyCx8I8hf1BMH8MeJ2R
+    +R7RNhjj2sdvEnywNpk0f2TTFObwkt7plxIw5aXdWU7qWuS0eUo3I0JGWjLHKN7z
+    jrDKTa1yHA==
+    -----END CERTIFICATE-----
+kind: ConfigMap
+metadata:
+  name: ansible-config
+  namespace: default
+```
+
 ### Modules
 
 To configure ansible in the module, the following args must be used:
@@ -368,7 +405,7 @@ spec:
     roles:
       - exampleRole
       - otherRole
-    hosts:
+    targets:
       - myhost1:
           credentials:
              login:
@@ -395,7 +432,4 @@ spec:
 - Galaxy server: https://docs.ansible.com/ansible/latest/galaxy/user_guide.html#downloading-a-collection-from-automation-hub
 - Plan request sur plan, déplacer d'annotation dans spec
 - Verify than a ansible plan is always created after an terraform plan, even if no changes
-- AnsibleRunRequest generate an ansible plan with an prefix name (i.e `arr-`) 
-- AnsibleRunRequest add a label to ansible plan (e.g. `planType: AnsibleRunRequest` 
-- AnsibleRunRequest add a label to ansible plan ()e.g. `pe: AnsibleRunRequest``
 - credentilas

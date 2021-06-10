@@ -583,6 +583,26 @@ def ansPlanSuccess(diff, status, namespace, logger, body, **kwargs):
     if 'auto' in plan['spec']:
       custom_api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', ansible_plan, {'spec': { 'approved': True }})
 
+
+def _compare_diff(plan: str, run:str, logger):
+  plan_lines = plan.splitlines()
+  run_lines = run.splitlines()
+
+  if len(plan_lines) != len(run_lines):
+    logger.info("plan and check run not same number of lines")
+
+  equal = True
+  for i in range(0, len(plan_lines)):
+    p_line = plan_lines[i]
+    r_line = run_lines[i]
+
+    if "/.ansible/tmp/" not in p_line:
+      if p_line != r_line:
+        equal = False
+        break
+  return equal
+
+
 @kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-check'}, field="status.succeeded")
 def ansCheckSuccess(diff, status, namespace, logger, body, **kwargs):
   ansible_run_name = body['metadata']['annotations']['ansibleRun']
@@ -590,8 +610,8 @@ def ansCheckSuccess(diff, status, namespace, logger, body, **kwargs):
   ansible_plan_name = ansible_run['spec']['ansiblePlan'] 
   ansible_plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', ansible_plan_name)
 
-  if ansible_plan['spec']['ansibleCheckLog'] == ansible_run['spec']['ansibleCheckLog']:
-    ansible_run(ansible_run_name, namespace, True, False)
+  if _compare_diff(ansible_plan['spec']['ansibleCheckLog'],ansible_run['spec']['ansibleCheckLog'], logger):
+    _ansible_run(ansible_run_name, namespace, True, False)
   else:
     status = {'NoRunReason': 'diff between plan and check are not equal'}
     updateCustomStatus(logger, 'ansibleruns', namespace, ansible_run_name, status)

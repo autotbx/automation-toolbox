@@ -121,7 +121,8 @@ class AnsibleCall:
         env["ANSIBLE_LOG_PATH"] = self.log_path
         env["ANSIBLE_CONFIG"] = os.path.join(self._data_dir, "ansible.cfg")
 
-        command = ["ansible-playbook", "-D"]
+        #TODO better parse output to allow parallelism
+        command = ["ansible-playbook", "-f", "1", "-D"]
         if check:
             command.append("-C")
         command.extend(["-i",  os.path.join(self._data_dir, "inventory.yaml"), os.path.join(self._data_dir, "playbook.yaml")])

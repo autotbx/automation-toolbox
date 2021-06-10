@@ -85,7 +85,8 @@ def gen_playbook(playbooks: Iterable):
             role_path = urlparse(role).path
             role_name = role_path.split('/')[-1]
             roles.append(role_name)
-        pb_dict = {"name": playbook.name, "hosts": playbook.targets.name, "become": True, "roles": roles, "vars": playbook.creds.to_dict()}
+        become = True if playbook.creds.to_dict()["ansible_connection"] == "ssh" else False
+        pb_dict = {"name": playbook.name, "hosts": playbook.targets.name, "become": become, "roles": roles, "vars": playbook.creds.to_dict()}
         pb_collection.append(pb_dict)
 
     return pb_collection
@@ -137,7 +138,8 @@ def parse_modules(modules: Iterable):
             try: 
                 creds = ansible_attribute["credentials"]
                 # TODO add sshkey and winrm
-                credentials = AnsibleCredentials(creds["user"], creds["password"])
+                conn_type = "winrm" if "type" in creds and creds["type"] == "winrm" else "ssh"
+                credentials = AnsibleCredentials(creds["user"], creds["password"], None, conn_type)
             except KeyError:
                 credentials = None
             if "variables" in ansible_attribute:

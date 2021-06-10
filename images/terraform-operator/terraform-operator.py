@@ -1,5 +1,6 @@
 # TODO remove disable when refactoring file
 # pylint: disable=bad-indentation
+from sys import api_version
 import kopf
 import kubernetes
 from kubernetes import client, config, utils
@@ -52,10 +53,10 @@ def updateCustomStatus(logger, plural, namespace, name, vals):
       else:
         newstatus[k] = vals[k]
 
-  logger.debug('setting new status %s/%s[%s]: %s -> %s' % (plural, name, namespace, status, newstatus))
   body = {'status': newstatus}
   try:
-    custom_api_instance.patch_namespaced_custom_object_status(API_GROUP, API_VERSION, namespace, plural, name, body)
+    ret = custom_api_instance.patch_namespaced_custom_object_status(API_GROUP, API_VERSION, namespace, plural, name, body)
+    logger.info(ret)
   except ApiException as e:
     print("Exception when calling CustomObjectsApi->patch_namespaced_custom_object_status: %s\n" % e)
     pass
@@ -361,8 +362,22 @@ def planRequestDelete(body, name, namespace, logger,  **kwargs):
 #  except Exception as e:
 #    logger.error(f'Failed to create plan for planRequest{planRequest}[{namespace}] in state {state["metadata"]["name"]}: {e}')
 
-def _ansible_run(name, namespace, check):
-  run_args = ["cat /data/inventory.yaml; ansible-playbook -D -i /data/inventory.yaml /data/playbook.yaml; ls /config ; cat /config/ansible.cfg; cat /tmp/ansible.log"]
+def _ansible_run(name, namespace, check, plan):
+  if check:
+    options = "-C"
+    if not plan:
+      label = "ansible-check"
+  else:
+    options = ""
+  if plan:
+    options += "P"
+    label = "ansible-plan"
+    annotation = "ansiblePlan"
+  else:
+    annotation = "ansibleRun"
+    if not check:
+      label = "ansible-run"
+  run_args = [f"cat /data/inventory.yaml; /ansible_wrapper.py {options}; ls /config ; cat /config/ansible.cfg; cat /tmp/ansible.log"]
   restart_policy = "Never"
   backoff_limit = 0
 
@@ -371,15 +386,15 @@ def _ansible_run(name, namespace, check):
     
   #TODO tf_container_image = planRequest.spec["tfExecutorImage"]
   a5e_container_name = "ansible"
-  a5e_container_image = "harbor.pks.lab.platform-essential.com/library/ansible"
+  a5e_container_image = "harbor.pks.lab.platform-essential.com/library/ansible:latest"
   a5e_command = [ "/bin/sh", "-x", "-c"]
   a5e_vols_mounts = [config_vol_mount, share_vol_mount]
   #TODO tf_image_policy = planRequest.spec["tfExecutorImagePullPolicy"]
 
   gen_a5e_container_name  = "ansible-gen"
-  gen_a5e_container_image ="harbor.pks.lab.platform-essential.com/library/ansible-gen" 
+  gen_a5e_container_image ="harbor.pks.lab.platform-essential.com/library/ansible-gen:latest" 
   gen_a5e_command = ["/bin/sh", "-x", "-c"]
-  gen_a5e_args = ["cp /config/certs /usr/local/share/ca-certificates/local.crt ; update-ca-certificates ; python ansible-gen.py"]
+  gen_a5e_args = ["cp /config/certs /usr/local/share/ca-certificates/local.crt ; update-ca-certificates ; python ansible_gen.py"]
   gen_a5e_vols_mount = [config_vol_mount, share_vol_mount]
 
   #TODO gentf_image_policy    = planRequest.spec["tfGeneratorImagePullPolicy"]
@@ -400,7 +415,9 @@ def _ansible_run(name, namespace, check):
 
   env_ansible_config = client.V1EnvVar(name="ANSIBLE_CONFIG", value="/config/ansible.cfg")
   env_ansible_log = client.V1EnvVar(name="ANSIBLE_LOG_PATH", value="/tmp/ansible.log")
-  env = [env_ansible_config, env_ansible_log]
+  env_namespace = client.V1EnvVar(name="K8S_NAMESPACE", value=namespace)
+  env_ansible_run = client.V1EnvVar(name="ANSIBLERUN_NAME", value=name)
+  env = [env_ansible_config, env_ansible_log, env_namespace, env_ansible_run]
 
   a5e_container = client.V1Container(name=a5e_container_name, image=a5e_container_image, command=a5e_command,args=run_args, volume_mounts=a5e_vols_mounts, env=env)#, image_pull_policy=tf_image_policy, volume_mounts=vols_mount, env=env)
   gen_a5e_container = client.V1Container(name=gen_a5e_container_name, image=gen_a5e_container_image, command=gen_a5e_command, args=gen_a5e_args, volume_mounts=gen_a5e_vols_mount)#, image_pull_policy=gentf_image_policy, env=env)
@@ -413,7 +430,7 @@ def _ansible_run(name, namespace, check):
   template.template.spec = client.V1PodSpec(containers=[a5e_container], init_containers=[gen_a5e_container], service_account_name="tfgen",restart_policy=restart_policy, automount_service_account_token=True, volumes=vols)#, volumes=[client.V1Volume(name="tf", empty_dir={})])
   
   body = client.V1Job()
-  body.metadata = client.V1ObjectMeta(namespace=namespace, generate_name=f"ans-{name}-", labels={"app": "ansible"}, annotations={'ansibleRun': name})#, 'type': tftype})
+  body.metadata = client.V1ObjectMeta(namespace=namespace, generate_name=f"ans-{name}-", labels={"app": label}, annotations={'ansibleRun': name, annotation: name})#, 'type': tftype})
   body.status = client.V1JobStatus()
   #todo config backoff
   body.spec = client.V1JobSpec(ttl_seconds_after_finished=600, template=template.template, backoff_limit=backoff_limit)
@@ -434,8 +451,45 @@ def ansible_run(body, name, namespace, logger, **kwargs):
   #import http.client
   #http.client.HTTPConnection.debuglevel = 5
 
-  return _ansible_run(name, namespace, False)
+  return _ansible_run(name, namespace, True, False)
 
+
+@kopf.on.create(API_GROUP, API_VERSION, 'ansiblerunrequest')
+def ansible_run_request(body, name, namespace, logger, **kwargs):
+  api_instance = client.CustomObjectsApi()
+  body = {
+      'apiVersion': f'{API_GROUP}/{API_VERSION}',
+      'kind': 'AnsiblePlan',
+      'metadata' : client.V1ObjectMeta(generate_name=f'arr-{name}-', namespace=namespace, labels={'source': 'ansibleRunRequest'}),
+      'spec': {
+        "approved": False,
+        "ansibleRunRequst": name
+      }
+  }
+  api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans',body)
+  #api_response = api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, self.namespace, 'ansibleplans', self.run_name, run)
+
+@kopf.on.create(API_GROUP, API_VERSION, 'ansibleplan')
+def ansible_plan(body, name, namespace, logger, **kwargs):
+  _ansible_run(name, namespace, True, True)
+
+@kopf.on.field(API_GROUP, API_VERSION, 'ansibleplans', field="spec.approved")
+def ansPlanApproved(diff, status, namespace, logger, body, **kwargs):
+  logger.info("plan approbation changed")
+  approved = body["spec"]["approved"]
+  if approved:
+    api_instance = client.CustomObjectsApi()
+    plan_name = body["metadata"]["name"]
+    body = {
+        'apiVersion': f'{API_GROUP}/{API_VERSION}',
+        'kind': 'AnsibleRun',
+        'metadata' : client.V1ObjectMeta(generate_name=f'arr-{plan_name}-', namespace=namespace, labels={'source': 'ansibleplan'}),
+        'spec': {
+          'ansiblePlan': plan_name
+
+        }
+    }
+    api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleruns',body)
 
 
 ## JOBS handlers
@@ -508,6 +562,45 @@ def jobCondition(diff, status, namespace, logger, body, **kwargs):
       status = {f'{tftype}Status' : 'Failed', f'{tftype}CompleteTime' : end}
       updateCustomStatus(logger, 'plans', namespace, body.metadata.annotations['planName'], status)
 
+@kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-plan'}, field="status.failed")
+def ansPlanFailed(diff, status, namespace, logger, body, **kwargs):
+  ansible_plan = body['metadata']['annotations']['ansiblePlan']
+  # TODO check if other path possible
+  if diff[0][3] > 0:
+    status = {'Status' : 'Failed', 'CompleteTime' : "Failed"}
+    updateCustomStatus(logger, 'ansibleplans', namespace, ansible_plan, status)
+
+
+@kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-plan'}, field="status.succeeded")
+def ansPlanSuccess(diff, status, namespace, logger, body, **kwargs):
+  ansible_plan = body['metadata']['annotations']['ansiblePlan']
+  if diff[0][2] != True and diff[0][3] == True:
+    end = body.status['completionTime']
+    status = {'StartTime': body.status['startTime'], 'Status' : 'Completed', 'CompleteTime' : end}
+    updateCustomStatus(logger, 'ansibleplans', namespace, ansible_plan, status)
+
+    plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', ansible_plan)
+    if 'auto' in plan['spec']:
+      custom_api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', ansible_plan, {'spec': { 'approved': True }})
+
+@kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-check'}, field="status.succeeded")
+def ansCheckSuccess(diff, status, namespace, logger, body, **kwargs):
+  ansible_run_name = body['metadata']['annotations']['ansibleRun']
+  ansible_run = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleruns', ansible_run_name)
+  ansible_plan_name = ansible_run['spec']['ansiblePlan'] 
+  ansible_plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', ansible_plan_name)
+
+  if ansible_plan['spec']['ansibleCheckLog'] == ansible_run['spec']['ansibleCheckLog']:
+    ansible_run(ansible_run_name, namespace, True, False)
+  else:
+    status = {'NoRunReason': 'diff between plan and check are not equal'}
+    updateCustomStatus(logger, 'ansibleruns', namespace, ansible_run_name, status)
+    logger.info("diff between plan and check")
+
+
+@kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-run'}, field="status.succeeded")
+def ansRunSuccess(diff, status, namespace, logger, body, **kwargs):
+  pass
 
 
 @kopf.on.startup()

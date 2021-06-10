@@ -1,7 +1,9 @@
 FROM python:3.9
 
+COPY apt-install.sh /
+COPY deblist.txt /
+RUN bash apt-install.sh
 COPY requirements.txt /
-COPY ansib_gen.py /
 RUN pip install -r requirements.txt
-
-CMD ansible_gen.py
+COPY ansible_wrapper.py /
+CMD ansible_wrapper.py

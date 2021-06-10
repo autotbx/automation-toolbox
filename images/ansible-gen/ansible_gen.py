@@ -16,6 +16,24 @@ API_VERSION = 'v1'
 
 ANSIBLE_ATTRIBUTES = 'ansibleAttributes'
 
+class AnsibleCredentials:
+    def __init__(self, login, password, sshkey = None, con_type = "ssh"):
+        self._login = login
+        self._password = password
+        self._sshkey = sshkey
+        self._con_type = con_type
+
+    def to_dict(self):
+        vars = {"ansible_user": self._login }
+        if self._password:
+            vars["ansible_password"] = self._password
+        # TODO write to file
+        if self._sshkey:
+            vars["ansible_sshkey"] = self._sshkey
+        if self._con_type == "winrm":
+            vars["ansible_connection"] = self._con_type
+        return vars
+        
 
 class AnsibleTarget:
     """ Represent a target to which Ansible will be run (host, group, etc.)"""
@@ -42,10 +60,11 @@ class AnsibleGroup(AnsibleTarget):
 
 class AnsiblePlaybook:
     """ Represent a Ansible playbook """
-    def __init__(self, name: str, targets: AnsibleTarget, roles: list):
+    def __init__(self, name: str, targets: AnsibleTarget, roles: list, credentials: AnsibleCredentials):
         self.name = name
         self.targets = targets
         self.roles = roles
+        self.creds = credentials
 
 def gen_inventory(groups: Iterable):
     """ Generate an inventory based on the groups givent """
@@ -66,7 +85,7 @@ def gen_playbook(playbooks: Iterable):
             role_path = urlparse(role).path
             role_name = role_path.split('/')[-1]
             roles.append(role_name)
-        pb_dict = {"name": playbook.name, "hosts": playbook.targets.name, "become": True, "roles": roles}
+        pb_dict = {"name": playbook.name, "hosts": playbook.targets.name, "become": True, "roles": roles, "vars": playbook.creds.to_dict()}
         pb_collection.append(pb_dict)
 
     return pb_collection
@@ -115,6 +134,12 @@ def parse_modules(modules: Iterable):
 
             roles = ansible_attribute["roles"]
             targets = ansible_attribute["targets"]
+            try: 
+                creds = ansible_attribute["credentials"]
+                # TODO add sshkey and winrm
+                credentials = AnsibleCredentials(creds["user"], creds["password"])
+            except KeyError:
+                credentials = None
             if "variables" in ansible_attribute:
                 variables = ansible_attribute["variables"]
             else:
@@ -133,11 +158,15 @@ def parse_modules(modules: Iterable):
                 target = AnsibleHost(name, ansible_vars)
                 group.add_host(target)
 
-            playbook = AnsiblePlaybook(group_name, group, roles)
+
+            playbook = AnsiblePlaybook(group_name, group, roles, credentials)
             playbooks.append(playbook)
 
     return groups, playbooks
 
+def write_config(dest: str):
+    with open(dest, "w") as conf_file:
+        conf_file.write("[defaults]\nhost_key_checking = false")
 
 def main():
     """ Entrypoint  """
@@ -160,6 +189,7 @@ def main():
 
     groups, playbooks = parse_modules(modules)
 
+    write_config(os.path.join(data_dir, "ansible.cfg"))
     write_yaml(gen_inventory(groups), os.path.join(data_dir, "inventory.yaml"))
     write_yaml(gen_playbook(playbooks), os.path.join(data_dir, "playbook.yaml"))
     logging.error(list(os.walk('/tmp')))

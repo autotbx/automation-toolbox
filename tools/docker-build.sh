@@ -16,7 +16,8 @@ for image in ./images/* ; do
 		build="true"
 	else
 		image_date=$( date -d "$image_iso_date" +%s )
-		dockerfile_date=$( date -d $( ls -l --time-style=full-iso "$image"/Dockerfile  | awk '{ print $6"T"$7$8 }' ) +%s )
+		#dockerfile_date=$( date -d $( ls -l --time-style=full-iso "$image"/Dockerfile  | awk '{ print $6"T"$7$8 }' ) +%s )
+		dockerfile_date=$( date -d $( ls -lt --time-style=full-iso "$image"/ | head -2 | tail -1 | awk '{ print $6"T"$7$8 }' ) +%s )
 
 		if [ "$dockerfile_date" -gt "$image_date" ] ; then
 			build="true"

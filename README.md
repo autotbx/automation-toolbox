@@ -302,13 +302,18 @@ Ansible runs are launched when a Terraform run is finished or manually when  a u
                                      AnsiblePlan   +
 AnsibleRunRequest  +-------------->                |
                                          auto:     |
-                                           hosts:  +----> ansible-playbook -C
+  ansiblePlan:
+   -
+   -                                        hosts:  +----> ansible-playbook -C
                                              -
                                              -
+                                            terraformPlan: 
                                          approved
                                          executionDate
                                          hostImpacted
                                          diff
+                                         status
+                                         ansibleRunRequest: 
                                          +
                                          |
                                          v
@@ -318,6 +323,10 @@ AnsibleRunRequest  +-------------->                |
                                       ansiblePlan |
                                                   +-----> ansible-playbook -C
                                                              +
+                                     executionDate
+                                     hostImpacted
+                                     diff
+                                     status
                                                   <----------+
 
                                                   +-----> ansible-playbook
@@ -354,17 +363,27 @@ metadata:
   label:
 spec:
   ...
-  ansibleArgs:
+  ansibleAttributes:
+    defautGalaxyServer: string
     roles:
       - exampleRole
       - otherRole
     hosts:
       - myhost1:
-          override: value
+          credentials:
+             login:
+             password:
+             sshkey:
+             type: winrm/ssh
+          vars:
+            override: value
       - myhost2
+
     vars:
       abc: def
       other: value
+    credentials:
+     ...
 ```
 
 # TODO
@@ -372,3 +391,11 @@ spec:
 - Check what happens when CRD are created when ansible not there
 - Lock strategy when Ansible or Terraform job is running to prevent two jobs to run in the same namespace 
 - Retry strategy when a job is finished to launch waiting Ansible or Terraform jobs
+- ModuleTemplate for ansible
+- Galaxy server: https://docs.ansible.com/ansible/latest/galaxy/user_guide.html#downloading-a-collection-from-automation-hub
+- Plan request sur plan, déplacer d'annotation dans spec
+- Verify than a ansible plan is always created after an terraform plan, even if no changes
+- AnsibleRunRequest generate an ansible plan with an prefix name (i.e `arr-`) 
+- AnsibleRunRequest add a label to ansible plan (e.g. `planType: AnsibleRunRequest` 
+- AnsibleRunRequest add a label to ansible plan ()e.g. `pe: AnsibleRunRequest``
+- credentilas

@@ -17,11 +17,12 @@ API_VERSION = 'v1'
 ANSIBLE_ATTRIBUTES = 'ansibleAttributes'
 
 class AnsibleCredentials:
-    def __init__(self, login, password, sshkey = None, con_type = "ssh"):
+    def __init__(self, login, password, sshkey = None, con_type = "ssh", winrm_server_cert_validation = "ignore"):
         self._login = login
         self._password = password
         self._sshkey = sshkey
         self._con_type = con_type
+        self._winrm_server_cert_validation = winrm_server_cert_validation
 
     def to_dict(self):
         vars = {"ansible_user": self._login }
@@ -32,6 +33,7 @@ class AnsibleCredentials:
             vars["ansible_sshkey"] = self._sshkey
         if self._con_type == "winrm":
             vars["ansible_connection"] = self._con_type
+            vars["ansible_winrm_server_cert_validation"] = self._winrm_server_cert_validation
         return vars
         
 
@@ -139,7 +141,8 @@ def parse_modules(modules: Iterable):
                 creds = ansible_attribute["credentials"]
                 # TODO add sshkey and winrm
                 conn_type = "winrm" if "type" in creds and creds["type"] == "winrm" else "ssh"
-                credentials = AnsibleCredentials(creds["user"], creds["password"], None, conn_type)
+                winrm_server_cert_validation = creds["winrm_server_cert_validation"] if "winrm_server_cert_validation" in creds else "ignore"
+                credentials = AnsibleCredentials(creds["user"], creds["password"], None, conn_type, winrm_server_cert_validation)
             except KeyError:
                 credentials = None
             if "variables" in ansible_attribute:

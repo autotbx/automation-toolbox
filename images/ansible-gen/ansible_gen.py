@@ -87,8 +87,12 @@ def gen_playbook(playbooks: Iterable):
             role_path = urlparse(role).path
             role_name = role_path.split('/')[-1]
             roles.append(role_name)
-        become = True if playbook.creds.to_dict()["ansible_connection"] == "ssh" else False
-        pb_dict = {"name": playbook.name, "hosts": playbook.targets.name, "become": become, "roles": roles, "vars": playbook.creds.to_dict()}
+        creds = playbook.creds.to_dict()
+        if "ansible_connection" in creds and creds["ansible_connection"] == "winrm":
+            become = False
+        else:
+            become = True
+        pb_dict = {"name": playbook.name, "hosts": playbook.targets.name, "become": become, "roles": roles, "vars": creds}
         pb_collection.append(pb_dict)
 
     return pb_collection

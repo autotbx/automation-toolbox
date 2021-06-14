@@ -39,8 +39,10 @@ class AnsibleCall:
 
     @classmethod
     def _parse_line(cls, line):
-        match = re.search(r"\| (?P<host>\w+)\s+: ok=(?P<ok>\d+)\s+changed=(?P<changed>\d+)\s+unreachable=(?P<unreachable>\d+)\s+failed=(?P<failed>\d+)\s+skipped=(?P<skipped>\d+)\s+rescued=(?P<rescued>\d+)\s+ignored=(?P<ignored>\d+)" , line)
+        match = re.search(r"\| (?P<host>[A-Za-z._-]+)\s+: ok=(?P<ok>\d+)\s+changed=(?P<changed>\d+)\s+unreachable=(?P<unreachable>\d+)\s+failed=(?P<failed>\d+)\s+skipped=(?P<skipped>\d+)\s+rescued=(?P<rescued>\d+)\s+ignored=(?P<ignored>\d+)" , line)
+        print("line parsing")
         if match:
+            print("matched: %s" % line  )
             result = AnsibleResult(match.group("host"), int(match.group("ok")), int(match.group("changed")), int(match.group("unreachable")), int(match.group("failed")), int(match.group("skipped")), int(match.group("rescued")), int(match.group("ignored")))
         else:
             result = None
@@ -60,7 +62,6 @@ class AnsibleCall:
         success = True
         hosts = []
         for line in line_to_parse:
-            print(line)
             result = self._parse_line(line)
             if result is not None:
                 hosts.append(result.host)
@@ -110,9 +111,7 @@ class AnsibleCall:
             object_k8s = "ansibleruns"
 
         run = {"spec": {ansible_result: result, ansible_log: logs, ansible_hosts: hosts}}
-        pprint.pprint(run)
         api_response = api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, self.namespace, object_k8s, self.run_name, run)
-        pprint.pprint(api_response)
 
     def call_ansible(self, check):
         """ Call ansible and parse result, if `check` is true, only perform check for the playbook """

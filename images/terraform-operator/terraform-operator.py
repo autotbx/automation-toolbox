@@ -377,7 +377,7 @@ def _ansible_run(name, namespace, check, plan):
     annotation = "ansibleRun"
     if not check:
       label = "ansible-run"
-  run_args = [f"cat /data/inventory.yaml; /ansible_wrapper.py {options}; ls /config ; cat /config/ansible.cfg; cat /tmp/ansible.log"]
+  run_args = [f"cat /data/inventory.yaml; /ansible_wrapper.py {options}; ls /config "]
   restart_policy = "Never"
   backoff_limit = 0
 
@@ -521,7 +521,40 @@ def jobSucceeded(diff, status, namespace, logger, body, **kwargs):
     end = body.status['completionTime']
     tftype =  'apply' if body["metadata"]["annotations"]["type"] == "apply" else 'plan'
     status = {f'{tftype}StartTime': body.status['startTime'], f'{tftype}Status' : 'Completed', f'{tftype}CompleteTime' : end}
-    updateCustomStatus(logger, 'plans', namespace, body.metadata.annotations['planName'], status)
+    plan_name = body.metadata.annotations['planName']
+    updateCustomStatus(logger, 'plans', namespace, plan_name, status)
+
+    plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', plan_name)
+
+    targets = plan["spec"]["targets"]
+    hosts = []
+    for target in targets:
+      module_name = target.split(".")[1]
+
+      module = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'modules', module_name)
+
+      if "ansibleAttributes" in module["spec"]:
+        for host in module["spec"]["ansibleAttributes"]["targets"]:
+          if type(host) is dict:
+            host_str = list(host.keys())[0]
+          else:
+            host_str = host
+          hosts.append(host_str)
+
+    plan_body = {
+      'apiVersion': f'{API_GROUP}/{API_VERSION}',
+      'kind': 'AnsiblePlan',
+      'metadata' : client.V1ObjectMeta(generate_name=f'ter-{plan_name}-', namespace=namespace, labels={'source': 'TerraformPlan'}),
+      'spec': {
+        "approved": False,
+        "auto": {
+          "hosts": hosts,
+          "terraformPlan": plan_name
+        }
+      }
+    }
+    custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', plan_body)
+    
 
 @kopf.on.field('batch', 'v1', 'jobs', field="status.active")
 def jobActive(diff, status, namespace, logger, body, **kwargs):

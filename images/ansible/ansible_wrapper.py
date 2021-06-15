@@ -39,8 +39,9 @@ class AnsibleCall:
 
     @classmethod
     def _parse_line(cls, line):
-        match = re.search(r"\| (?P<host>[A-Za-z._-]+)\s+: ok=(?P<ok>\d+)\s+changed=(?P<changed>\d+)\s+unreachable=(?P<unreachable>\d+)\s+failed=(?P<failed>\d+)\s+skipped=(?P<skipped>\d+)\s+rescued=(?P<rescued>\d+)\s+ignored=(?P<ignored>\d+)" , line)
+        match = re.search(r"\| (?P<host>[0-9A-Za-z._-]+)\s+: ok=(?P<ok>\d+)\s+changed=(?P<changed>\d+)\s+unreachable=(?P<unreachable>\d+)\s+failed=(?P<failed>\d+)\s+skipped=(?P<skipped>\d+)\s+rescued=(?P<rescued>\d+)\s+ignored=(?P<ignored>\d+)" , line)
         print("line parsing")
+        print(line)
         if match:
             print("matched: %s" % line  )
             result = AnsibleResult(match.group("host"), int(match.group("ok")), int(match.group("changed")), int(match.group("unreachable")), int(match.group("failed")), int(match.group("skipped")), int(match.group("rescued")), int(match.group("ignored")))
@@ -54,10 +55,10 @@ class AnsibleCall:
             line_to_parse = []
             found = False
             for line in log_file:
-                if "PLAY RECAP **********************" in line:
-                    found = True
                 if found:
                     line_to_parse.append(line)
+                if "PLAY RECAP **********************" in line:
+                    found = True
 
         success = True
         hosts = []
@@ -110,6 +111,9 @@ class AnsibleCall:
         else:
             object_k8s = "ansibleruns"
 
+        print("#####################################################################################")
+        print("hosts: %s" % ", ".join(hosts))
+        print("#####################################################################################")
         run = {"spec": {ansible_result: result, ansible_log: logs, ansible_hosts: hosts}}
         api_response = api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, self.namespace, object_k8s, self.run_name, run)
 

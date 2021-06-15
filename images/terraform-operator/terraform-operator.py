@@ -644,7 +644,7 @@ def ansCheckSuccess(diff, status, namespace, logger, body, **kwargs):
   ansible_plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', ansible_plan_name)
 
   if _compare_diff(ansible_plan['spec']['ansibleCheckLog'],ansible_run['spec']['ansibleCheckLog'], logger):
-    _ansible_run(ansible_run_name, namespace, True, False)
+    _ansible_run(ansible_run_name, namespace, False, False)
   else:
     status = {'NoRunReason': 'diff between plan and check are not equal'}
     updateCustomStatus(logger, 'ansibleruns', namespace, ansible_run_name, status)

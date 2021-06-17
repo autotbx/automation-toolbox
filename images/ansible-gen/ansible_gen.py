@@ -2,12 +2,14 @@
 """
 Module to generate Ansible inventoriy and playbooks from Terraform operator completion
 """
+from sys import api_version
 from typing import Iterable
 import os
 import logging
 import subprocess
 from urllib.parse import urlparse
 from kubernetes import client, config
+from kubernetes.client.api.custom_objects_api import CustomObjectsApi
 #import kubernetes.client
 import yaml
 
@@ -126,9 +128,27 @@ def clone_roles(playbooks: Iterable, directory: str, check_ssl: bool):
             logging.error("stdout: %s", process_error.stdout)
             logging.error("stderr: %s", process_error.stderr)
 
+def _get_ansible_attribute(module: dict, attribute: str, namespace: str, api_instance: CustomObjectsApi):
+    """ Return an attribute value in an module or in its template """
+    value = None
+    module_spec = module['spec'][ANSIBLE_ATTRIBUTES]
+    if attribute in module_spec:
+        value = module_spec[attribute]
+    else:
+        if 'moduleTemplate' in module_spec or 'clusterModuleTemplate' in module_spec:
+            try:
+                template_name = module_spec['moduleTemplate']
+                template = api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'moduleTemplates', template_name)
+            except KeyError:
+                template_name = module_spec['clusterModuleTemplate']
+                template = api_instance.get_cluster_custom_object(API_GROUP, API_VERSION, 'clusterModuleTemplates', template_name)
 
+            template_spec = template['spec']
+            if attribute in template_spec:
+                value = template_spec[attribute]
+    return value
 
-def parse_modules(modules: Iterable):
+def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjectsApi):
     """ Parse the module from the Terraform operator to generate the groups and playbooks for Ansible """
     groups = []
     playbooks = []
@@ -136,23 +156,22 @@ def parse_modules(modules: Iterable):
     for module in modules:
         if ANSIBLE_ATTRIBUTES in module['spec']:
             group_name = module["metadata"]["name"]
-            ansible_attribute = module['spec'][ANSIBLE_ATTRIBUTES]
-            # print(ansible_attribute)
 
-            roles = ansible_attribute["roles"]
-            targets = ansible_attribute["targets"]
-            try: 
-                creds = ansible_attribute["credentials"]
-                # TODO add sshkey and winrm
+            roles = _get_ansible_attribute(module, "roles", namespace, api_instance)
+            targets = _get_ansible_attribute(module, "targets", namespace, api_instance)
+
+            creds = _get_ansible_attribute(module, "credentials", namespace, api_instance)
+            # TODO add sshkey and winrm
+
+            if creds is None:
+                credentials = None
+            else:
                 conn_type = "winrm" if "type" in creds and creds["type"] == "winrm" else "ssh"
                 winrm_server_cert_validation = creds["winrm_server_cert_validation"] if "winrm_server_cert_validation" in creds else "ignore"
                 credentials = AnsibleCredentials(creds["user"], creds["password"], None, conn_type, winrm_server_cert_validation)
-            except KeyError:
-                credentials = None
-            if "variables" in ansible_attribute:
-                variables = ansible_attribute["variables"]
-            else:
-                variables = {}
+
+            variables = _get_ansible_attribute(module, "variables", namespace, api_instance)
+            variables = {} if variables is None else variables
 
             group = AnsibleGroup(group_name, variables)
             groups.append(group)
@@ -196,7 +215,7 @@ def main():
 
     modules = api_instance.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, "modules")["items"]
 
-    groups, playbooks = parse_modules(modules)
+    groups, playbooks = parse_modules(modules, namespace, api_instance)
 
     write_config(os.path.join(data_dir, "ansible.cfg"))
     write_yaml(gen_inventory(groups), os.path.join(data_dir, "inventory.yaml"))

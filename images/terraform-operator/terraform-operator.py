@@ -526,34 +526,36 @@ def jobSucceeded(diff, status, namespace, logger, body, **kwargs):
 
     plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', plan_name)
 
-    targets = plan["spec"]["targets"]
-    hosts = []
-    for target in targets:
-      module_name = target.split(".")[1]
 
-      module = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'modules', module_name)
+    if tftype == "apply":
+      targets = plan["spec"]["targets"]
+      hosts = []
+      for target in targets:
+        module_name = target.split(".")[1]
 
-      if "ansibleAttributes" in module["spec"]:
-        for host in module["spec"]["ansibleAttributes"]["targets"]:
-          if type(host) is dict:
-            host_str = list(host.keys())[0]
-          else:
-            host_str = host
-          hosts.append(host_str)
+        module = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'modules', module_name)
 
-    plan_body = {
-      'apiVersion': f'{API_GROUP}/{API_VERSION}',
-      'kind': 'AnsiblePlan',
-      'metadata' : client.V1ObjectMeta(generate_name=f'ter-{plan_name}-', namespace=namespace, labels={'source': 'TerraformPlan'}),
-      'spec': {
-        "approved": False,
-        "auto": {
-          "hosts": hosts,
-          "terraformPlan": plan_name
+        if "ansibleAttributes" in module["spec"]:
+          for host in module["spec"]["ansibleAttributes"]["targets"]:
+            if type(host) is dict:
+              host_str = list(host.keys())[0]
+            else:
+              host_str = host
+            hosts.append(host_str)
+
+      plan_body = {
+        'apiVersion': f'{API_GROUP}/{API_VERSION}',
+        'kind': 'AnsiblePlan',
+        'metadata' : client.V1ObjectMeta(generate_name=f'ter-{plan_name}-', namespace=namespace, labels={'source': 'TerraformPlan'}),
+        'spec': {
+          "approved": False,
+          "auto": {
+            "hosts": hosts,
+            "terraformPlan": plan_name
+          }
         }
       }
-    }
-    custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', plan_body)
+      custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', plan_body)
     
 
 @kopf.on.field('batch', 'v1', 'jobs', field="status.active")

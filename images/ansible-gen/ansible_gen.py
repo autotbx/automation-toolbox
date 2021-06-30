@@ -12,6 +12,8 @@ from kubernetes import client, config
 from kubernetes.client.api.custom_objects_api import CustomObjectsApi
 #import kubernetes.client
 import yaml
+from urllib.parse import urlparse
+
 
 API_GROUP = 'terraform.dst.io'
 API_VERSION = 'v1'
@@ -64,11 +66,22 @@ class AnsibleGroup(AnsibleTarget):
 
 class AnsiblePlaybook:
     """ Represent a Ansible playbook """
-    def __init__(self, name: str, targets: AnsibleTarget, roles: list, credentials: AnsibleCredentials):
+    def __init__(self, name: str, targets: AnsibleTarget, roles: list, credentials: AnsibleCredentials, default_server: str):
         self.name = name
         self.targets = targets
-        self.roles = roles
+        self._roles = roles
         self.creds = credentials
+        self._default_server = default_server
+
+    def get_roles(self):
+        fqdn_roles = []
+        for role in self._roles:
+            url_role = urlparse(role)
+            if not url_role.scheme:
+                role = self._default_server + role
+            fqdn_roles.append(role)
+
+        return fqdn_roles
 
 def gen_inventory(groups: Iterable):
     """ Generate an inventory based on the groups givent """
@@ -85,7 +98,7 @@ def gen_playbook(playbooks: Iterable):
     pb_collection = []
     for playbook in playbooks:
         roles = []
-        for role in playbook.roles:
+        for role in playbook.get_roles():
             role_path = urlparse(role).path
             role_name = role_path.split('/')[-1]
             roles.append(role_name)
@@ -109,7 +122,7 @@ def clone_roles(playbooks: Iterable, directory: str, check_ssl: bool):
     """ Install the roles in the configured directory """
     roles = []
     for playbook in playbooks:
-        for role in playbook.roles:
+        for role in playbook.get_roles():
             if role not in roles:
                 roles.append(role)
     for role in roles:
@@ -157,6 +170,7 @@ def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjects
         if ANSIBLE_ATTRIBUTES in module['spec']:
             group_name = module["metadata"]["name"]
 
+            default_server = _get_ansible_attribute(module, "defautGalaxyServer", namespace, api_instance)
             roles = _get_ansible_attribute(module, "roles", namespace, api_instance)
             targets = _get_ansible_attribute(module, "targets", namespace, api_instance)
 
@@ -187,7 +201,7 @@ def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjects
                 group.add_host(target)
 
 
-            playbook = AnsiblePlaybook(group_name, group, roles, credentials)
+            playbook = AnsiblePlaybook(group_name, group, roles, credentials, default_server)
             playbooks.append(playbook)
 
     return groups, playbooks

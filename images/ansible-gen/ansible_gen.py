@@ -165,13 +165,13 @@ def _get_ansible_attribute(module: dict, attribute: str, namespace: str, api_ins
             env_name = state_spec['environment']
             for env in template_spec['environments']:
                 if env['name'] == env_name:
-                    env_ans_attribute = env['ansibleAttributes']
+                    env_ans_attribute = env[ANSIBLE_ATTRIBUTES]
                     if attribute in env_ans_attribute:
                         env_value = env_ans_attribute[attribute]
                     break
 
-        if attribute in template_spec:
-            template_value = template_spec[attribute]
+        if attribute in template_spec[ANSIBLE_ATTRIBUTES]:
+            template_value = template_spec[ANSIBLE_ATTRIBUTES][attribute]
 
     template_value = _concat_value(env_value, template_value)
     template_value = _concat_value(mod_value, template_value)
@@ -196,7 +196,7 @@ def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjects
         if ANSIBLE_ATTRIBUTES in module['spec']:
             group_name = module["metadata"]["name"]
 
-            default_server = _get_ansible_attribute(module, "defautGalaxyServer", namespace, api_instance)
+            default_server = _get_ansible_attribute(module, "defaultGalaxyServer", namespace, api_instance)
             roles = _get_ansible_attribute(module, "roles", namespace, api_instance)
             targets = _get_ansible_attribute(module, "targets", namespace, api_instance)
 

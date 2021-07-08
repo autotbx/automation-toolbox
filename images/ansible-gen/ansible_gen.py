@@ -143,23 +143,49 @@ def clone_roles(playbooks: Iterable, directory: str, check_ssl: bool):
 
 def _get_ansible_attribute(module: dict, attribute: str, namespace: str, api_instance: CustomObjectsApi):
     """ Return an attribute value in an module or in its template """
-    value = None
-    module_spec = module['spec'][ANSIBLE_ATTRIBUTES]
-    if attribute in module_spec:
-        value = module_spec[attribute]
-    else:
-        if 'moduleTemplate' in module_spec or 'clusterModuleTemplate' in module_spec:
-            try:
-                template_name = module_spec['moduleTemplate']
-                template = api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'moduleTemplates', template_name)
-            except KeyError:
-                template_name = module_spec['clusterModuleTemplate']
-                template = api_instance.get_cluster_custom_object(API_GROUP, API_VERSION, 'clusterModuleTemplates', template_name)
+    template = None
+    mod_value = {}
+    env_value = {}
+    template_value = {}
+    module_spec = module['spec']
+    ansible_spec = module_spec[ANSIBLE_ATTRIBUTES]
+    state_spec = api_instance.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'states')["items"][0]['spec']
 
-            template_spec = template['spec']
-            if attribute in template_spec:
-                value = template_spec[attribute]
-    return value
+    if attribute in ansible_spec:
+        mod_value = ansible_spec[attribute]
+    if 'moduleTemplate' in module_spec:
+        template_name = module_spec['moduleTemplate']
+        template = api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'moduletemplates', template_name)
+    elif 'clusterModuleTemplate' in module_spec:
+        template_name = module_spec['clusterModuleTemplate']
+        template = api_instance.get_cluster_custom_object(API_GROUP, API_VERSION, 'clustermoduletemplates', template_name)
+    if template is not None:
+        template_spec = template['spec']
+        if 'environment' in state_spec:
+            env_name = state_spec['environment']
+            for env in template_spec['environments']:
+                if env['name'] == env_name:
+                    env_ans_attribute = env['ansibleAttributes']
+                    if attribute in env_ans_attribute:
+                        env_value = env_ans_attribute[attribute]
+                    break
+
+        if attribute in template_spec:
+            template_value = template_spec[attribute]
+
+    template_value = _concat_value(env_value, template_value)
+    template_value = _concat_value(mod_value, template_value)
+
+    return template_value
+
+def _concat_value(sup_value, template):
+    if type(sup_value) is str or type(sup_value) is list:
+        template = sup_value
+    else:
+        for key, value in sup_value.items():
+            template[key] = value
+    return template
+
 
 def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjectsApi):
     """ Parse the module from the Terraform operator to generate the groups and playbooks for Ansible """
@@ -184,7 +210,7 @@ def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjects
                 winrm_server_cert_validation = creds["winrm_server_cert_validation"] if "winrm_server_cert_validation" in creds else "ignore"
                 credentials = AnsibleCredentials(creds["user"], creds["password"], None, conn_type, winrm_server_cert_validation)
 
-            variables = _get_ansible_attribute(module, "variables", namespace, api_instance)
+            variables = _get_ansible_attribute(module, "vars", namespace, api_instance)
             variables = {} if variables is None else variables
 
             group = AnsibleGroup(group_name, variables)
@@ -223,7 +249,6 @@ def main():
     if check_ssl == "FALSE":
         check_ssl = False
     # in_kubernetes = os.environ.get("KUBERNETES_PORT",  False)
-#    state =  os.environ.get("STATE")
 
     api_instance = client.CustomObjectsApi()
 

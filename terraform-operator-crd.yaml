@@ -43,9 +43,32 @@ spec:
                       defaultAttributes:
                         type: object
                         x-kubernetes-preserve-unknown-fields: true
+                      ansibleAttributes:
+                        type: object
+                        properties:
+                          roles:
+                            type: array
+                            items:
+                              type: string
+                          credentials:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                              user:
+                                type: string
+                              password:
+                                type: string
+                              ssh_key: 
+                                type: string
+                          vars:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
                 ansibleAttributes:
                   type: object
                   properties:
+                    defaultGalayServer:
+                      type: string
                     roles:
                       type: array
                       items:
@@ -53,10 +76,17 @@ spec:
                     credentials:
                       type: object
                       properties:
-                        type: string
-                        user: string
-                        password: string
-                        ssh_key: string
+                        type:
+                          type: string
+                        user:
+                          type: string
+                        password:
+                          type: string
+                        ssh_key: 
+                          type: string
+                    vars:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -102,9 +132,32 @@ spec:
                       defaultAttributes:
                         type: object
                         x-kubernetes-preserve-unknown-fields: true
+                      ansibleAttributes:
+                        type: object
+                        properties:
+                          roles:
+                            type: array
+                            items:
+                              type: string
+                          credentials:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                              user:
+                                type: string
+                              password:
+                                type: string
+                              ssh_key:
+                                type: string
+                          vars:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
                 ansibleAttributes:
                   type: object
                   properties:
+                    defaultGalayServer:
+                      type: string
                     roles:
                       type: array
                       items:
@@ -112,10 +165,17 @@ spec:
                     credentials:
                       type: object
                       properties:
-                        type: string
-                        user: string
-                        password: string
-                        ssh_key: string
+                        type:
+                          type: string
+                        user:
+                          type: string
+                        password:
+                          type: string
+                        ssh_key:
+                          type: string
+                    vars:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -176,6 +236,51 @@ spec:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
                   # TODO: declare all expected fields
+                ansibleAttributes:
+                  type: object
+                  properties:
+                    defaultGalayServer:
+                      type: string
+                    targets:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          credentials:
+                            type: object
+                            properties:
+                              credentials:
+                                type: object
+                                properties:
+                                  type:
+                                    type: string
+                                  user:
+                                    type: string
+                                  password:
+                                    type: string
+                                  ssh_key:
+                                    type: string
+                              vars:
+                                type: object
+                                x-kubernetes-preserve-unknown-fields: true
+                    roles:
+                      type: array
+                      items:
+                        type: string
+                    credentials:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        user:
+                          type: string
+                        password:
+                          type: string
+                        ssh_key:
+                          type: string
+                    vars:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
                 outputs:
                   type: array
                   items:

@@ -280,7 +280,7 @@ def applyStatus(diff, status, namespace, logger, body, **kwargs):
     except kubernetes.client.ApiException:
       log = "pod not found"
     updateCustomStatus(logger, 'plans', namespace, body.metadata.name, {'applyOutput' : log})
-    if "Saved plan is stale" in log:
+    if log and "Saved plan is stale" in log:
       logger.info(f"Saved plan is stale, trying to request a new plan with OriginalPlan {body.metadata.name}")
       ori = body.spec['originalPlan'] if 'originalPlan' in body.spec else body.metadata.name
       targets = body.spec['targets'] if 'targets' in body.spec else None
@@ -402,6 +402,17 @@ def _ansible_run(name: str, namespace: str, check: bool, plan: bool):
  #   print(body)
     return False
 
+def _update_ans_status(namespace: str, plural: str, name: str, values: dict):
+  body = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, plural, name)
+  newstatus = body['status'] if 'status' in body else {}
+  for key, value in values.items():
+    newstatus[key] = value
+  body = {'status': newstatus}
+  try:
+    ret = custom_api_instance.patch_namespaced_custom_object_status(API_GROUP, API_VERSION, namespace, plural, name, body)
+  except ApiException as e:
+    print("Exception when calling CustomObjectsApi->patch_namespaced_custom_object_status: %s\n" % e)
+
 @kopf.on.create(API_GROUP, API_VERSION, 'ansiblerun')
 def ansible_run(body, name, namespace, logger, **kwargs):
   #logging.getLogger("urllib3").setLevel(logging.DEBUG)
@@ -420,14 +431,17 @@ def ansible_run_request(body, name, namespace, logger, **kwargs):
       'metadata' : client.V1ObjectMeta(generate_name=f'arr-{name}-', namespace=namespace, labels={'source': 'ansibleRunRequest'}),
       'spec': {
         "approved": False,
-        "ansibleRunRequst": name
+        "ansibleRunRequest": name
       }
   }
-  api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans',body)
-  #api_response = api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, self.namespace, 'ansibleplans', self.run_name, run)
+
+  api_response = api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans',body)
+  _update_ans_status(namespace,'ansiblerunrequests', name, {'AnsiblePlan': api_response['metadata']['name']})
+
 
 @kopf.on.create(API_GROUP, API_VERSION, 'ansibleplan')
 def ansible_plan(body, name, namespace, logger, **kwargs):
+  _update_ans_status(namespace,'ansibleplans', name, {'Status': 'Init'})
   _ansible_run(name, namespace, True, True)
 
 @kopf.on.field(API_GROUP, API_VERSION, 'ansibleplans', field="spec.approved")
@@ -553,6 +567,11 @@ def jobCondition(diff, status, namespace, logger, body, **kwargs):
     if failed:
       status = {f'{tftype}Status' : 'Failed', f'{tftype}CompleteTime' : end}
       updateCustomStatus(logger, 'plans', namespace, body.metadata.annotations['planName'], status)
+
+@kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-plan'}, field="status.active")
+def ansPlanActive(diff, status, namespace, logger, body, **kwargs):
+  ansible_plan = body['metadata']['annotations']['ansiblePlan']
+  _update_ans_status(namespace, 'ansibleplans', ansible_plan, {'Status': 'Job started'})
 
 @kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-plan'}, field="status.failed")
 def ansPlanFailed(diff, status, namespace, logger, body, **kwargs):

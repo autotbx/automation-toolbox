@@ -329,40 +329,13 @@ def planRequestDelete(body, name, namespace, logger,  **kwargs):
 
 ## ANSIBLE handlers
 
-#def create_ansible_run():
-#  originalPlanRequest = originalPlanRequest if originalPlanRequest != None else planRequest
-#  annotations = {'planRequest': originalPlanRequest}
-#  body = {
-#      'apiVersion': f'{API_GROUP}/{API_VERSION}',
-#      'kind': 'Plan',
-#      'metadata' : client.V1ObjectMeta(annotations=annotations, generate_name=f'{stateName}-', namespace=namespace),
-#      'spec': {
-#        "approved": False if originalPlan != None else state["spec"]["autoPlanApprove"],
-#        "deleteJobsOnDeleted": state["spec"]['deleteJobsOnPlanDeleted'],
-#        "deletePlansOnDeleted": state["spec"]['deletePlansOnPlanDeleted'],
-#        "state": state["metadata"]["name"],
-#        "tfGeneratorImage" : state["spec"]["tfGeneratorImage"],
-#        "tfGeneratorImagePullPolicy": state["spec"]["tfGeneratorImagePullPolicy"],
-#        "tfExecutorImage" : state["spec"]["tfExecutorImage"],
-#        "tfExecutorImagePullPolicy" : state["spec"]["tfExecutorImagePullPolicy"]
-#      }
-#  }
-#  if targets != None:
-#    body['spec']['targets'] = targets
-#  if originalPlan != None:
-#    body['spec']['originalPlan'] = originalPlan
-#  
-#  try:
-#    response = custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', body)
-#    logger.info(f'Plan {response["metadata"]["name"]} successfully created for PlanRequest {planRequest}')
-#    status = {'plans': [response["metadata"]["name"]]}
-#    updateCustomStatus(logger, 'planrequests', namespace, originalPlanRequest, status)
-#  except ApiException as e:
-#    logger.error("Exception when calling CustomObjectsApi->create_namespaced_custom_object: %s\n" % e)
-#  except Exception as e:
-#    logger.error(f'Failed to create plan for planRequest{planRequest}[{namespace}] in state {state["metadata"]["name"]}: {e}')
-
-def _ansible_run(name, namespace, check, plan):
+def _ansible_run(name: str, namespace: str, check: bool, plan: bool):
+  """ Create an ansible run job, which will only check or apply the changes
+  name: the object name where the job status will be reported
+  namespace: the kubernetes namespace where the job will run
+  check: whether the changes will be applied or not
+  plan: whether the check info should be reported on ansibleplan or ansiblerun
+  """
   if check:
     options = "-C"
     if not plan:
@@ -396,22 +369,6 @@ def _ansible_run(name, namespace, check, plan):
   gen_a5e_command = ["/bin/sh", "-x", "-c"]
   gen_a5e_args = ["cp /config/certs /usr/local/share/ca-certificates/local.crt ; update-ca-certificates ; python ansible_gen.py"]
   gen_a5e_vols_mount = [config_vol_mount, share_vol_mount]
-
-  #TODO gentf_image_policy    = planRequest.spec["tfGeneratorImagePullPolicy"]
-
-  
-  #target_env = ' '.join([ f'-target={x}' for x in planRequest['spec']['targets']]) if 'targets' in planRequest['spec'] else ''
-  #env_tf_target = client.V1EnvVar(name="TF_TARGET", value=target_env)
-
-  #env_tf_state = client.V1EnvVar(name="STATE", value=planRequest.spec['state'])
-
-  #env_tf_secret = client.V1EnvVar(name="K8S_SECRET", value=f"tf-plan-{name}")
-  #env_tf_path = client.V1EnvVar(name="TF_PATH", value="/tf/main.tf")
-  #env_tf_ns_val  = client.V1EnvVarSource(field_ref=client.V1ObjectFieldSelector(field_path="metadata.namespace"))
-  ##env_tf_ns = client.V1EnvVar(name="K8S_NAMESPACE", value_from=env_tf_ns_val)
-  #env_tf_ns = client.V1EnvVar(name="K8S_NAMESPACE", value="default")
-  #env = [env_tf_ns, env_tf_path, env_tf_secret, env_tf_target, env_tf_state]
-  #vols_mount = [client.V1VolumeMount(name="tf", mount_path="/tf")]
 
   env_ansible_config = client.V1EnvVar(name="ANSIBLE_CONFIG", value="/config/ansible.cfg")
   env_ansible_log = client.V1EnvVar(name="ANSIBLE_LOG_PATH", value="/tmp/ansible.log")

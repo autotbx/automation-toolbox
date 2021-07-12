@@ -62,9 +62,7 @@ The operator will manage automatically the Staled plan & Locked state scenario.
 Environment support is a feature that enable the following object to overwrite attributes from the defaultAttributes for the **working environment**:
 
 * ClusterModuleTemplate
-* ModuleTemplate
 * ClusterProvider
-* Provider
 
 The state defined the **working environment**. This allow to avoid to create multiple resources with only a few differents settings that depend on the environment.
 
@@ -76,25 +74,37 @@ kind: ClusterModuleTemplate
 metadata:
   name: svvm
 spec:
-  requiredAttributes:
-  - vmnames
-  - num_cpus
-  - memory
   defaultAttributes:
-    network_name : vm_network
-    dns_servers:
+  - name: cluster_name
+    sValue: VxRail
+  - name: datacenter_name
+    sValue: Datacenter
+  - name: datastore_name
+    sValue: VSAN
+  - name: dns_servers
+    lsValue:
     - 172.19.36.2
-    domain: vm.lab.platform-essential.com
-    folder_path: dst
-    datacenter_name: Datacenter
-    cluster_name: VxRail
-    datastore_name: VSAN
-    template_name: ubuntu-1804-tpl-davy
-    source: "git::http://toolbox.vm.lab.platform-essential.com/toolbox-repos/terraform-module-svvm.git"
+  - name: domain
+    sValue: vm.lab.platform-essential.com
+  - name: folder_path
+    sValue: dst
+  - name: network_name
+    sValue: vm_network
+  - name: source
+    sValue: git::http://toolbox.vm.lab.platform-essential.com/toolbox-repos/terraform-module-svvm.git
+  - name: template_name
+    sValue: ubuntu-1804-tpl-davy
   environments:
-  - name: dev
+  - name: dev 
     defaultAttributes:
-      folder_path: 'dst-dev'
+    - name: folder
+      sValue: dst-dev
+  requiredAttributes:
+  - name: vmnames
+    type: lsValue
+  - name: num_cpus
+    type: iValue
+  - name: memory
 ```
 
 With this definition, if the ClusterModuleTemplate is used with a state that have the environment attribute to DEV will use the folder_path: 'dst-dev' attributes instead of the defaultAttributes defined previously.
@@ -113,17 +123,22 @@ All the following objects are defined using the term **Attributes** which corres
 For example, a Provider with the following definition :
 
 ```
-Kind: Provider
+apiVersion: terraform.dst.io/v1
+kind: Provider
 metadata:
   name: vcsa
 spec:
   type: vsphere
   autoPlanRequest: true
-  defaultAttributes:
-    user: "administrator@vsphere.local"
-    password: "VMware123!"
-    vsphere_server: "https://vcsa.local"
-    allow_unverified_ssl: true
+  attributes:
+  - name: user
+    sValue: "toolbox2@lab.platform-essential.com"
+  - name: password
+    sValue: "Toolbox12*"
+  - name: vsphere_server
+    sValue: vcsa.mgt.lab.platform-essential.com
+  - name: allow_unverified_ssl
+    bValue: true
 ```
 
 will generated the corresponding terraform file :
@@ -144,17 +159,66 @@ State is automatically managed by the operator.
 You can use the commands ``` kubectl logs POD-ID -c tfgen``` to have the generated output.
 
 # Objects definitions
-## ClusterProviders / Providers
+## Attributes type
 
-These objects represent a terraform provider at the cluster or namespace level. Cluster level is used to shared a Providers with multiple namespace.
+Multiple type of attributes is available:
+
+| type | description  |
+|----------|----------|
+|iValue    | integer  |
+|sValue    | string   |
+|bValue    | boolean  |
+|nValue    | number   |
+|liValue    | list of integer  |
+|lsValue    | list of string   |
+|lbValue    | list of boolean  |
+|lnValue    | list of number   |
+
+## ClusterProviders 
+This object represent a terraform provider at the cluster. Cluster level is used to shared a Providers with multiple namespace.
 
 | variable | type | required | default | Description |
 |----------|----------|----------|---------|-------|
 |metadata.name | string |true |         |Name of the provider|
 |spec.type |string|true      |         |Type of the provider (terraform name)|
 |spec.autoPlanRequest|boolean|true||Create auto PlanRequest if modified|
-|spec.defaultAttributes| object   |true|         | attributes to use for terraform|
-|spec.environments | array[object] |false|| Overwrite defaultAttribute for defined env|
+|spec.attributes| array[attributes]   |true|         | attributes to use for terraform|
+|spec.environments | array[array[attributes]] |false|| Overwrite attributes for defined env|
+
+```
+apiVersion: terraform.dst.io/v1
+kind: ClusterProvider
+metadata:
+  name: vcsa
+spec:
+  type: vsphere
+  autoPlanRequest: true
+  attributes:
+  - name: user
+    sValue: "toolbox2@lab.platform-essential.com"
+  - name: password
+    sValue: "Toolbox12*"
+  - name: vsphere_server
+    sValue: vcsa.mgt.lab.platform-essential.com
+  - name: allow_unverified_ssl
+    bValue: true
+  environments:
+  - name: fakeenv
+    attributes:
+    - name: user
+      sValue: 'XXXX'
+```
+
+## Providers
+
+This object represent a terraform provider at the namespace level.
+
+| variable | type | required | default | Description |
+|----------|----------|----------|---------|-------|
+|metadata.name | string |true |         |Name of the provider|
+|spec.type |string|true      |         |Type of the provider (terraform name)|
+|spec.autoPlanRequest|boolean|true||Create auto PlanRequest if modified|
+|spec.attributes| array[attributes]   |true|         | attributes to use for terraform|
 
 
 ```
@@ -165,15 +229,15 @@ metadata:
 spec:
   type: vsphere
   autoPlanRequest: true
-  defaultAttributes:
-    user: "yyyy"
-    password: "xxxx"
-    vsphere_server: "zzzz"
-    allow_unverified_ssl: true
-  environments:
-  - name: dev
-    defaultAttributes:
-      user: 'abc'
+  attributes:
+  - name: user
+    sValue: "toolbox2@lab.platform-essential.com"
+  - name: password
+    sValue: "Toolbox12*"
+  - name: vsphere_server
+    sValue: vcsa.mgt.lab.platform-essential.com
+  - name: allow_unverified_ssl
+    bValue: true
 ```
 
 ## States
@@ -211,16 +275,18 @@ spec:
 ```
 
 ## Modules
-### ClusterModuleTemplates/ModuleTemplates
+### ClusterModuleTemplates
 
-ModuleTemplates can be consumed by a Module to provides default configuration with the possibilities to overwrite specific parameters
+ClusterModuleTemplates can be consumed by a Module to provides default configuration with the possibilities to overwrite specific parameters
+
 
 | variable | type | required | default | Description |
 |----------|----------|----------|---------|-------|
-|metadata.name | string |true |         |Name of the PlanRequest|
-|spec.requiredAttributes|array[string]|true      |         |Required attributes for module that consume this template|
-|spec.defaultAttributes|object|true      |         |Default attributes for module that consume this template|
-|spec.environments|array[object]|false      |         |Default attributes for module that consume this template in the specify environment|
+|metadata.name | string |true |         |Name of the ClusterModuleTemplate|
+|spec.autoPlanRequest | string |false | true       |Enable auto plan request on object modificiation|
+|spec.requiredAttributes|array[attributes]|true      |         |Required attributes for module that consume this template|
+|spec.defaultAttributes|array[attributes]|true      |         |Default attributes for module that consume this template|
+|spec.environments|array[array[attributes]]|false      |         |Default attributes for module that consume this template in the specify environment|
 
 ```
 apiVersion: terraform.dst.io/v1
@@ -228,26 +294,118 @@ kind: ClusterModuleTemplate
 metadata:
   name: svvm
 spec:
-  requiredAttributes:
-  - vmnames
-  - num_cpus
-  - memory
   defaultAttributes:
-    network_name : vm_network
-    dns_servers:
+  - name: cluster_name
+    sValue: VxRail
+  - name: datacenter_name
+    sValue: Datacenter
+  - name: datastore_name
+    sValue: VSAN
+  - name: dns_servers
+    lsValue:
     - 172.19.36.2
-    domain: vm.lab.platform-essential.com
-    folder_path: dst
-    datacenter_name: Datacenter
-    cluster_name: VxRail
-    datastore_name: VSAN
-    template_name: ubuntu-1804-tpl-davy
-    source: "git::http://toolbox.vm.lab.platform-essential.com/toolbox-repos/terraform-module-svvm.git"
+  - name: domain
+    sValue: vm.lab.platform-essential.com
+  - name: folder_path
+    sValue: dst
+  - name: network_name
+    sValue: vm_network
+  - name: source
+    sValue: git::http://toolbox.vm.lab.platform-essential.com/toolbox-repos/terraform-module-svvm.git
+  - name: template_name
+    sValue: ubuntu-1804-tpl-davy
   environments:
-  - name: dev
+  - name: dev 
     defaultAttributes:
-      folder_path: 'dst-dev'
+    - name: folder
+      sValue: dst-dev
+  requiredAttributes:
+  - name: vmnames
+    type: lsValue
+  - name: num_cpus
+    type: iValue
+  - name: memory
+    type: iValue
  ```
+
+### ModuleTemplates
+
+ModuleTemplates can be consumed by a Module to provides default configuration with the possibilities to overwrite specific parameters
+
+
+| variable | type | required | default | Description |
+|----------|----------|----------|---------|-------|
+|metadata.name | string |true |         |Name of the ModuleTemplate|
+|spec.autoPlanRequest | string |false | true       |Enable auto plan request on object modificiation|
+|spec.requiredAttributes|array[attributes]|true      |         |Required attributes for module that consume this template|
+|spec.defaultAttributes|array[attributes]|true      |         |Default attributes for module that consume this template|
+
+```
+apiVersion: terraform.dst.io/v1
+kind: ModuleTemplate
+metadata:
+  name: svvm
+spec:
+  defaultAttributes:
+  - name: cluster_name
+    sValue: VxRail
+  - name: datacenter_name
+    sValue: Datacenter
+  - name: datastore_name
+    sValue: VSAN
+  - name: dns_servers
+    lsValue:
+    - 172.19.36.2
+  - name: domain
+    sValue: vm.lab.platform-essential.com
+  - name: folder_path
+    sValue: dst
+  - name: network_name
+    sValue: vm_network
+  - name: source
+    sValue: git::http://toolbox.vm.lab.platform-essential.com/toolbox-repos/terraform-module-svvm.git
+  - name: template_name
+    sValue: ubuntu-1804-tpl-davy
+  requiredAttributes:
+  - name: vmnames
+    type: lsValue
+  - name: num_cpus
+    type: iValue
+  - name: memory
+    type: iValue
+ ```
+
+### Modules
+
+A module object represent a terraform module.
+
+| variable | type | required | default | Description |
+|----------|----------|----------|---------|-------|
+|metadata.name | string |true |         |Name of the Module|
+|spec.autoPlanRequest | string |false | true       |Enable auto plan request on object modificiation|
+|spec.requiredAttributes|array[attributes]|true      |         |Required attributes for module that consume this template|
+|spec.defaultAttributes|array[attributes]|true      |         |Default attributes for module that consume this template|
+
+```
+apiVersion: terraform.dst.io/v1
+kind: Module
+metadata:
+  name: myvms
+spec:
+  attributes:
+  - name: network_name
+    sValue: heheh
+  - name: vmnames
+    lsValue:
+    - myvm2
+    - myvm1
+  - name: memory
+    iValue: 2048
+  - name: num_cpus
+    iValue: 2
+  clusterModuleTemplate: svvm
+```
+
 
 ## PlanRequests
 

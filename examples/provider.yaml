@@ -5,8 +5,12 @@ metadata:
 spec:
   type: vsphere
   autoPlanRequest: true
-  defaultAttributes:
-    user: "yyyy"
-    password: "xxxx"
-    vsphere_server: "zzzz"
-    allow_unverified_ssl: true
+  attributes:
+  - name: user
+    sValue: "toolbox2@lab.platform-essential.com"
+  - name: password
+    sValue: "Toolbox12*"
+  - name: vsphere_server
+    sValue: vcsa.mgt.lab.platform-essential.com
+  - name: allow_unverified_ssl
+    bValue: true

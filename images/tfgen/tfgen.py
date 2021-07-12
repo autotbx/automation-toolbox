@@ -63,35 +63,60 @@ output "{{module}}_{{output["name"]}}" {
 
 ''' 
 
-def formatAttr(objs):
-  for key in objs:
-    val = objs[key]
-    if type(val) == type(''):
-        objs[key] = f'"{val}"'
+def formatAttr(attributes):
+  out = {}
+  for attribute in attributes:
+    attrtype = attributes[attribute]['type']
+    value = attributes[attribute]['value']
+    if attrtype == 'sValue':
+        val = f'"{value}"'
+    elif attrtype == 'nValue':
+        val = f'{float(value)}'
+    elif attrtype == 'iValue':
+        val = f'{int(value)}'
+    elif attrtype  == 'bValue':
+        val = 'true' if value == True or value == 'true' else 'false'
+    #todo: handle correctly array list " not correctly escaped
+    elif attrtype == 'lsValue' or attrtype == 'lnValue' or attrtype == "liValue" :
+        val = f'{value}'.replace("'",'"')
+    elif attrtype == 'lbValue':
+        val = f'{value}'.replace("'",'"').replace('True', 'true').replace('False', 'false')
+    else:
+        print(f'[WARN] Skipping key {attribute}[{attrtype}]: unknow type')
         continue
-
-    if type(val) == type(True):
-      if val:
-        objs[key] = f'true'
-      else:
-        objs[key] = f'false'
-      continue
-
-    if type(val) == type([]):
-      objs[key] = str(val).replace("'", '"')
-      continue
-  return objs
+    out[attribute] = val
+  return out
 
 # resolve env
-def getAttr(obj, environment):
+def getAttr(obj, environment, where):
   out = {}
-  for attr in obj["spec"]["defaultAttributes"]:
-    out[attr] = obj["spec"]["defaultAttributes"][attr]
+  attrs = parseAttr(obj["spec"][where])
+  for attr in attrs:
+      out[attr] = {'value': attrs[attr]['value'], 'type': attrs[attr]['type']}
   if 'environments' in obj["spec"]:
     for env in obj["spec"]["environments"]:
       if env['name'] == environment:
-        for attr in env['defaultAttributes']:
-          out[attr] = env['defaultAttributes'][attr]
+        attrs = parseAttr(env[where])
+        for attr in attrs:
+            out[attr] = {'value': attrs[attr]['value'], 'type': attrs[attr]['type']}
+  return out
+
+def parseAttr(attributes):
+    out = {}
+    attrTypes = ["iValue", "sValue", "bValue", "nValue", "liValue", "lsValue", "lbValue", "lnValue"]
+    for attribute in attributes:
+        for t in attrTypes:
+          if t in attribute:
+            out[attribute['name']] = {}
+            out[attribute['name']]['type'] = t
+            out[attribute['name']]['value'] = attribute[t]
+            break
+    return out
+
+def parseRequiredAttributes(attributes):
+  out = {}
+  for attribute in attributes:
+    out[attribute['name']] = {'type': attribute['type']}
   return out
 
 try:
@@ -123,7 +148,7 @@ if 'clusterProviders' in state['spec']:
 # provider Overwritten by ClusterProvider if same type 
 fproviders = {}
 for provider in realProviders:
-  fproviders[provider['spec']['type']] = formatAttr(getAttr(provider, stateEnv))
+  fproviders[provider['spec']['type']] = formatAttr(getAttr(provider, stateEnv, "attributes"))
 
 fmodules = {}
 foutputs = {}
@@ -146,14 +171,14 @@ for module in modules:
   if tpl != None:
     if 'requiredAttributes' in tpl['spec']:
       missingRequiredAttributes = []
-      for requiredAttribute in tpl['spec']['requiredAttributes']:
-        if requiredAttribute not in module['spec']['attributes']:
+      for requiredAttribute in parseRequiredAttributes(tpl['spec']['requiredAttributes']):
+        if requiredAttribute not in parseAttr(module['spec']['attributes']):
           missingRequiredAttributes.append(requiredAttribute)
       if len(missingRequiredAttributes) != 0:
         errors.append(f"[MODULESKIP] {moduleName} : template {tpl['metadata']['name']}, missing requiredAttributes {missingRequiredAttributes}")
         continue
-    attributes = formatAttr(getAttr(tpl, stateEnv))
-    modAttributes = formatAttr(module['spec']['attributes'])
+    attributes = formatAttr(getAttr(tpl, stateEnv, 'defaultAttributes'))
+    modAttributes = formatAttr(parseAttr(module['spec']['attributes']))
     for attribute in modAttributes:
       #overwrite tpl attribute if defined in module
       attributes[attribute] = modAttributes[attribute]

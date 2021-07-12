@@ -27,57 +27,116 @@ spec:
               type: object
               properties:
                 defaultAttributes:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
+                  type: array
+                  items:
+                    type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
                 requiredAttributes:
                   type: array
                   items:
-                    type: string
+                    type: object
+                    required:
+                    - name
+                    - type
+                    properties:
+                      name:
+                        type: string
+                      type:
+                        type: string
+                        enum:
+                        - iValue
+                        - sValue
+                        - bValue
+                        - nValue
+                        - liValue
+                        - lsValue
+                        - lbValue
+                        - lnValue
                 environments:
                   type: array
                   items:
                     type: object
+                    required:
+                    - name
+                    - defaultAttributes
                     properties:
                       name:
                         type: string
                       defaultAttributes:
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
-                      ansibleAttributes:
-                        type: object
-                        properties:
-                          defaultGalaxyServer:
-                            type: string
-                          roles:
-                            type: array
-                            items:
+                        type: array
+                        items:
+                          type: object
+                          oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                          properties:
+                            name: 
                               type: string
-                          credentials:
-                            type: object
-                            properties:
-                              type:
+                            iValue:
+                              type: integer
+                            sValue:
+                              type: string
+                            bValue:
+                              type: boolean
+                            nValue:
+                              type: number
+                            lsValue:
+                              type: array
+                              items:
                                 type: string
-                              user:
-                                type: string
-                              password:
-                                type: string
-                              ssh_key: 
-                                type: string
-                          vars:
-                            type: array
-                            items:
-                              type: object
-                              oneOf:
-                                - required: ["name", "iValue"]
-                                - required: ["name", "sValue"]
-                                - required: ["name", "bValue"]
-                                - required: ["name", "nValue"]
-                                - required: ["name", "liValue"]
-                                - required: ["name", "lsValue"]
-                                - required: ["name", "lbValue"]
-                                - required: ["name", "lnValue"]
-                              properties:
-                                name:
+                            liValue:
+                              type: array
+                              items:
+                                type: integer
+                            lbValue:
+                              type: array
+                              items:
+                                type: boolean
+                            lnValue:
+                              type: array
+                              items:
+                                type: number
                                   type: string
                                 bValue:
                                   type: boolean
@@ -192,30 +251,66 @@ spec:
               type: object
               properties:
                 defaultAttributes:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
-                requiredAttributes:
-                  type: array
-                  items:
-                    type: string
-                environments:
                   type: array
                   items:
                     type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
+                requiredAttributes:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                    - name
+                    - type
                     properties:
                       name:
                         type: string
-                      defaultAttributes:
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
-                      ansibleAttributes:
-                        type: object
-                        properties:
-                          roles:
-                            type: array
-                            items:
-                              type: string
-                          credentials:
+                      type:
+                        type: string
+                        enum:
+                        - iValue
+                        - sValue
+                        - bValue
+                        - nValue
+                        - liValue
+                        - lsValue
+                        - lbValue
+                        - lnValue
                             type: object
                             properties:
                               type:
@@ -359,7 +454,6 @@ spec:
       - jsonPath: .metadata.creationTimestamp
         name: age
         type: date
-      
       schema:
         openAPIV3Schema:
           type: object
@@ -367,16 +461,53 @@ spec:
           - spec
           properties:
             spec:
+              type: object
               required:
               - attributes
-              type: object
               properties:
                 autoPlanRequest:
                   type: boolean
                   default: true
                 attributes:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
+                  type: array
+                  items:
+                    type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
                 #todo: mutual exclude tpl
                 clusterModuleTemplate:
                   type: string
@@ -505,11 +636,10 @@ spec:
                   items:
                     type: object
                     properties:
-                      name:
-                        type: string
-                      value:
-                        type: string
-
+                       name:
+                         type: string
+                       value:
+                         type: string
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -613,23 +743,96 @@ spec:
                   type: boolean
                 type:
                   type: string
-                defaultAttributes:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
-                requiredAttributes:
+                attributes:
                   type: array
                   items:
-                    type: string
+                    type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
                 environments:
                   type: array
                   items:
                     type: object
+                    required:
+                    - name
+                    - attributes
                     properties:
                       name:
                         type: string
-                      defaultAttributes:
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
+                      attributes:
+                        type: array
+                        items:
+                          type: object
+                          oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                          properties:
+                            name: 
+                              type: string
+                            iValue:
+                              type: integer
+                            sValue:
+                              type: string
+                            bValue:
+                              type: boolean
+                            nValue:
+                              type: number
+                            lsValue:
+                              type: array
+                              items:
+                                type: string
+                            liValue:
+                              type: array
+                              items:
+                                type: integer
+                            lbValue:
+                              type: array
+                              items:
+                                type: boolean
+                            lnValue:
+                              type: array
+                              items:
+                                type: number
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -672,23 +875,46 @@ spec:
                   type: boolean
                 type:
                   type: string
-                defaultAttributes:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
-                requiredAttributes:
-                  type: array
-                  items:
-                    type: string
-                environments:
+                attributes:
                   type: array
                   items:
                     type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
                     properties:
-                      name:
+                      name: 
                         type: string
-                      defaultAttributes:
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition

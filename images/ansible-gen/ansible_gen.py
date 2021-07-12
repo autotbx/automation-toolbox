@@ -20,6 +20,8 @@ API_VERSION = 'v1'
 
 ANSIBLE_ATTRIBUTES = 'ansibleAttributes'
 
+ATTRIBUTE_TYPE = ['iValue', 'nValue', 'sValue', 'bValue', 'liValue', 'lfValue', 'lsValue', 'lbValue']
+
 class AnsibleCredentials:
     def __init__(self, login, password, sshkey = None, con_type = "ssh", winrm_server_cert_validation = "ignore"):
         self._login = login
@@ -164,7 +166,7 @@ def _get_ansible_attribute(module: dict, attribute: str, namespace: str, api_ins
         if 'environment' in state_spec:
             env_name = state_spec['environment']
             for env in template_spec['environments']:
-                if env['name'] == env_name:
+                if env['name'] == env_name and ANSIBLE_ATTRIBUTES in env:
                     env_ans_attribute = env[ANSIBLE_ATTRIBUTES]
                     if attribute in env_ans_attribute:
                         env_value = env_ans_attribute[attribute]
@@ -173,8 +175,12 @@ def _get_ansible_attribute(module: dict, attribute: str, namespace: str, api_ins
         if attribute in template_spec[ANSIBLE_ATTRIBUTES]:
             template_value = template_spec[ANSIBLE_ATTRIBUTES][attribute]
 
-    template_value = _concat_value(env_value, template_value)
-    template_value = _concat_value(mod_value, template_value)
+    if attribute == 'vars':
+        template_value.extend(env_value)
+        template_value.extend(mod_value)
+    else:
+        template_value = _concat_value(env_value, template_value)
+        template_value = _concat_value(mod_value, template_value)
 
     return template_value
 
@@ -186,6 +192,18 @@ def _concat_value(sup_value, template):
             template[key] = value
     return template
 
+def _parse_variables(vars_list):
+    """Transform the list of vars stored in module definition in dictionnary"""
+    vars = {}
+    for var in vars_list:
+       key = var['name']
+       value = None
+       for var_type in ATTRIBUTE_TYPE:
+           if var_type in var:
+               value = var[var_type]
+               break
+       vars[key] = value
+    return vars
 
 def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjectsApi):
     """ Parse the module from the Terraform operator to generate the groups and playbooks for Ansible """
@@ -211,7 +229,7 @@ def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjects
                 credentials = AnsibleCredentials(creds["user"], creds["password"], None, conn_type, winrm_server_cert_validation)
 
             variables = _get_ansible_attribute(module, "vars", namespace, api_instance)
-            variables = {} if variables is None else variables
+            variables = _parse_variables(variables)
 
             group = AnsibleGroup(group_name, variables)
             groups.append(group)

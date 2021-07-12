@@ -526,7 +526,8 @@ def jobSucceeded(diff, status, namespace, logger, body, **kwargs):
           }
         }
       }
-      custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', plan_body)
+      api_response = custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', plan_body)
+      updateCustomStatus(logger, 'plans', namespace, plan_name, {'AnsiblePlan': api_response['metadata']['name']})
     
 
 @kopf.on.field('batch', 'v1', 'jobs', field="status.active")
@@ -613,6 +614,17 @@ def _compare_diff(plan: str, run:str, logger):
         break
   return equal
 
+@kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-check'}, field="status.active")
+def ansCheckActive(diff, status, namespace, logger, body, **kwargs):
+  ansible_run_name = body['metadata']['annotations']['ansibleRun']
+  status = {'Status' : 'Check started'}
+  updateCustomStatus(logger, 'ansibleruns', namespace, ansible_run_name, status)
+
+@kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-check'}, field="status.failed")
+def ansCheckFailed(diff, status, namespace, logger, body, **kwargs):
+  ansible_run_name = body['metadata']['annotations']['ansibleRun']
+  status = {'Status' : 'Check failed'}
+  updateCustomStatus(logger, 'ansibleruns', namespace, ansible_run_name, status)
 
 @kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-check'}, field="status.succeeded")
 def ansCheckSuccess(diff, status, namespace, logger, body, **kwargs):
@@ -622,17 +634,31 @@ def ansCheckSuccess(diff, status, namespace, logger, body, **kwargs):
   ansible_plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', ansible_plan_name)
 
   if _compare_diff(ansible_plan['spec']['ansibleCheckLog'],ansible_run['spec']['ansibleCheckLog'], logger):
+    status = {'Status': 'check completed'}
+    updateCustomStatus(logger, 'ansibleruns', namespace, ansible_run_name, status)
     _ansible_run(ansible_run_name, namespace, False, False)
   else:
-    status = {'NoRunReason': 'diff between plan and check are not equal'}
+    status = {'Status': 'diff between plan and check are not equal'}
     updateCustomStatus(logger, 'ansibleruns', namespace, ansible_run_name, status)
     logger.info("diff between plan and check")
 
+@kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-run'}, field="status.active")
+def ansCheckActive(diff, status, namespace, logger, body, **kwargs):
+  ansible_run_name = body['metadata']['annotations']['ansibleRun']
+  status = {'Status' : 'Apply started'}
+  updateCustomStatus(logger, 'ansibleruns', namespace, ansible_run_name, status)
+
+@kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-run'}, field="status.failed")
+def ansCheckFailed(diff, status, namespace, logger, body, **kwargs):
+  ansible_run_name = body['metadata']['annotations']['ansibleRun']
+  status = {'Status' : 'Apply failed'}
+  updateCustomStatus(logger, 'ansibleruns', namespace, ansible_run_name, status)
 
 @kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible-run'}, field="status.succeeded")
 def ansRunSuccess(diff, status, namespace, logger, body, **kwargs):
-  pass
-
+  ansible_run_name = body['metadata']['annotations']['ansibleRun']
+  status = {'Status' : 'apply completed'}
+  updateCustomStatus(logger, 'ansibleruns', namespace, ansible_run_name, status)
 
 @kopf.on.startup()
 def configure(settings: kopf.OperatorSettings, **_):

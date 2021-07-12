@@ -317,6 +317,10 @@ spec:
       subresources:
         status: {}
       additionalPrinterColumns:
+      - jsonPath: .status.Status
+        name: status
+        type: string
+        description: Run status
       - jsonPath: .metadata.creationTimestamp
         name: age
         type: date
@@ -327,9 +331,10 @@ spec:
           - spec
           properties:
             spec:
-              x-kubernetes-preserve-unknown-fields: true
               type: object
               properties:
+                ansiblePlan:
+                  type: string
                 ansibleResult:
                   type: boolean
                 ansibleLog:
@@ -340,12 +345,17 @@ spec:
                     type: string
                 ansibleCheckResult:
                   type: boolean
-                ansibleLog:
+                ansibleCheckLog:
                   type: string
                 ansibleCheckHosts:
                   type: array
                   items:
                     type: string
+            status:
+              type: object
+              properties:
+                Status:
+                  type: string
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -787,6 +797,8 @@ spec:
                         type: string
                       type:
                         type: string
+                AnsiblePlan:
+                  type: string
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition

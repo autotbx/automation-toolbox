@@ -137,6 +137,41 @@ spec:
                               type: array
                               items:
                                 type: number
+                      ansibleAttributes:
+                        type: object
+                        properties:
+                          defaultGalaxyServer:
+                            type: string
+                          roles:
+                            type: array
+                            items:
+                              type: string
+                          credentials:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                              user:
+                                type: string
+                              password:
+                                type: string
+                              ssh_key: 
+                                type: string
+                          vars:
+                            type: array
+                            items:
+                              type: object
+                              oneOf:
+                                - required: ["name", "iValue"]
+                                - required: ["name", "sValue"]
+                                - required: ["name", "bValue"]
+                                - required: ["name", "nValue"]
+                                - required: ["name", "liValue"]
+                                - required: ["name", "lsValue"]
+                                - required: ["name", "lbValue"]
+                                - required: ["name", "lnValue"]
+                              properties:
+                                name:
                                   type: string
                                 bValue:
                                   type: boolean
@@ -311,56 +346,6 @@ spec:
                         - lsValue
                         - lbValue
                         - lnValue
-                            type: object
-                            properties:
-                              type:
-                                type: string
-                              user:
-                                type: string
-                              password:
-                                type: string
-                              ssh_key:
-                                type: string
-                          vars:
-                            type: array
-                            items:
-                              type: object
-                              oneOf:
-                                - required: ["name", "iValue"]
-                                - required: ["name", "sValue"]
-                                - required: ["name", "bValue"]
-                                - required: ["name", "nValue"]
-                                - required: ["name", "liValue"]
-                                - required: ["name", "lsValue"]
-                                - required: ["name", "lbValue"]
-                                - required: ["name", "lnValue"]
-                              properties:
-                                name:
-                                  type: string
-                                bValue:
-                                  type: boolean
-                                iValue:
-                                  type: integer
-                                nValue:
-                                  type: number
-                                sValue:
-                                  type: string
-                                lbValue:
-                                  type: array
-                                  items:
-                                    type: boolean
-                                liValue:
-                                  type: array
-                                  items:
-                                    type: integer
-                                lnValue:
-                                  type: array
-                                  items:
-                                    type: number
-                                lsValue:
-                                  type: array
-                                  items:
-                                    type: string
                 ansibleAttributes:
                   type: object
                   properties:

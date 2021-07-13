@@ -235,12 +235,15 @@ def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjects
             groups.append(group)
 
             for host in targets:
-                if isinstance(host, str):
-                    name = host
-                    ansible_vars = {}
-                else:
-                    name = list(host.keys())[0]
-                    ansible_vars = host[name]
+                name = host['fqdn']
+                ansible_vars = {}
+                if 'vars' in host:
+                    for var in host['vars']:
+                        key = var['name']
+                        for val_name in ATTRIBUTE_TYPE:
+                            if val_name  in var:
+                                value = var[val_name]
+                        ansible_vars[key] = value
                 target = AnsibleHost(name, ansible_vars)
                 group.add_host(target)
 

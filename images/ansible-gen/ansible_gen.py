@@ -47,7 +47,11 @@ class AnsibleTarget:
     """ Represent a target to which Ansible will be run (host, group, etc.)"""
     def __init__(self, name: str, ansible_vars: dict):
         self.name = name
-        self.vars = ansible_vars
+        self.vars = ansible_vars if ansible_vars is not None else {}
+
+    def add_credentials(self, ansible_creds: AnsibleCredentials):
+        for key, value in ansible_creds.to_dict().items():
+            self.vars[key] = value
 
 class AnsibleHost(AnsibleTarget):
     """ Represent a host to which Ansible will be run """
@@ -205,6 +209,14 @@ def _parse_variables(vars_list):
        vars[key] = value
     return vars
 
+def _parse_credentials(creds: dict):
+    """ Parse credentials from dict retrieve in yaml to AnsibleCredentials object """
+    conn_type = "winrm" if "type" in creds and creds["type"] == "winrm" else "ssh"
+    winrm_server_cert_validation = creds["winrm_server_cert_validation"] if "winrm_server_cert_validation" in creds else "ignore"
+    credentials = AnsibleCredentials(creds["user"], creds["password"], None, conn_type, winrm_server_cert_validation)
+
+    return credentials
+
 def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjectsApi):
     """ Parse the module from the Terraform operator to generate the groups and playbooks for Ansible """
     groups = []
@@ -224,9 +236,7 @@ def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjects
             if creds is None:
                 credentials = None
             else:
-                conn_type = "winrm" if "type" in creds and creds["type"] == "winrm" else "ssh"
-                winrm_server_cert_validation = creds["winrm_server_cert_validation"] if "winrm_server_cert_validation" in creds else "ignore"
-                credentials = AnsibleCredentials(creds["user"], creds["password"], None, conn_type, winrm_server_cert_validation)
+                credentials = _parse_credentials(creds)
 
             variables = _get_ansible_attribute(module, "vars", namespace, api_instance)
             variables = _parse_variables(variables)
@@ -245,8 +255,11 @@ def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjects
                                 value = var[val_name]
                         ansible_vars[key] = value
                 target = AnsibleHost(name, ansible_vars)
-                group.add_host(target)
 
+                if 'credentials' in host:
+                    creds = _parse_credentials(host['credentials'])
+                    target.add_credentials(creds)
+                group.add_host(target)
 
             playbook = AnsiblePlaybook(group_name, group, roles, credentials, default_server)
             playbooks.append(playbook)

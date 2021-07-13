@@ -522,6 +522,8 @@ spec:
                       type: array
                       items:
                         type: object
+                        required:
+                          - fqdn
                         properties:
                           fqdn:
                             type: string

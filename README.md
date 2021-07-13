@@ -564,15 +564,15 @@ spec:
       - exampleRole
       - otherRole
     targets:
-      - myhost1:
-          credentials:
-             login:
-             password:
-             sshkey:
-             type: winrm/ssh
-          vars:
-            override: value
-      - myhost2
+      - fqdn: myhost1
+        credentials:
+          login:
+          password:
+          sshkey:
+          type: winrm/ssh
+        vars:
+          override: value
+      - fqdn: myhost2
 
     vars:
       abc: def

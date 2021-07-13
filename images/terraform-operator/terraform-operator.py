@@ -588,10 +588,15 @@ def ansPlanSuccess(diff, status, namespace, logger, body, **kwargs):
   ansible_plan = body['metadata']['annotations']['ansiblePlan']
   if diff[0][2] != True and diff[0][3] == True:
     end = body.status['completionTime']
-    status = {'StartTime': body.status['startTime'], 'Status' : 'Completed', 'CompleteTime' : end}
+    plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', ansible_plan)
+    if plan['spec']['ansibleCheckResult']:
+      check_status = 'Completed'
+    else:
+      check_status = 'Failed'
+
+    status = {'StartTime': body.status['startTime'], 'Status' : check_status, 'CompleteTime' : end}
     updateCustomStatus(logger, 'ansibleplans', namespace, ansible_plan, status)
 
-    plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', ansible_plan)
     if 'auto' in plan['spec']:
       custom_api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', ansible_plan, {'spec': { 'approved': True }})
 

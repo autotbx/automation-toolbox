@@ -261,21 +261,6 @@ def edit(plural, namespace, name):
   if obj == None:
     abort(404)
   form = json.dumps(utils.updateFieldsValues(utils.getForm(plural), plural, obj))
-
-  #if form == None:
-  #  abort(404)
-  #js = ""
-  #if plural == "modules":
-  #  if "clusterModuleTemplate" in obj['spec'] and obj['spec']['clusterModuleTemplate'] != "":
-  #    js = "var completetype='clustermoduletemplates';"
-  #    js += f"var completetpl='{obj['spec']['clusterModuleTemplate']}';"
-  #  elif "moduleTemplate" in obj['spec'] and obj['spec']['moduleTemplate'] != "":
-  #    js = f"var completetype='moduletemplates/{namespace}';"
-  #    js += f"var completetpl='{obj['spec']['moduleTemplate']}';"
-  #  else:
-  #    js = "var completetype='';"
-  #    js += f"var completetpl='';"
-
   return render_template("edit.html",pluralTitle=plural.title(), action="edit", plural=plural, name=name, namespace=namespace, form=form, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
 
 @app.route('/cluster/<plural>/<name>/edit')

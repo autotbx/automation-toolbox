@@ -2,7 +2,7 @@
 {% block customcss %}{{css}}{% endblock %}
 {% block title %}{{pluralTitle}}{% endblock %}
 {% block nav %}
-  {% if plural != "clusterproviders" and plural != "clustermoduletemplates" %}
+  {% if plural != "clusterproviders" and plural != "clustermoduletemplates" and namespace != None %}
     {% if plural == "states" %}
        States <span data-feather="chevron-right"></span> 
        <a href="/{{ plural }}/{{namespace}}/{{ name }}">{{ name }}</a><span data-feather="chevron-right"></span> Edition
@@ -327,19 +327,24 @@ function genForm(sections) {
     if (typeof(sections) == typeof({})) {
       var htype = ("htype" in section) ? section["htype"] : "h4";
       var hrclass = ("hrclass" in section) ? section['hrclass'] : '';
-      var addBtn = ("add" in section && section['add'] != '') ? '<span style="float: right; margin-right: 17%"><span data-feather="plus-circle" class="btn-del-attribute '+section['add']+'"></span></span>' : '';
+      var addBtn = ("add" in section && section['add'] != '') ? '<span data-feather="plus-circle" class="btn-del-attribute '+section['add']+'"></span>' : '';
+      var display = (section['id'] == 'spec' || section['id'] == 'requiredAttributes') ? 'block' : 'none';
       html += `
       <div class="`+section['id']+`">
       <`+htype+`>
         `+section['name']+`
-        `+addBtn+`
+        <span style="float: right; margin-right: 17%">
+          <span data-feather="menu" class="btn-del-attribute togglesection"></span> 
+          `+addBtn+`
+        </span>
       </`+htype+`>
       <hr class="`+hrclass+`" />
+      <div class="section" style="display: `+display+`">
       `;
     }
     html += genFields(section['fields']);
     if (typeof(section) == typeof({})) {
-      html += '</div>'
+      html += '</div></div>'
     }
   });
   html += '<button type="submit" id="submit" style="display: none" class="btn btn-primary">Submit</button>'
@@ -793,14 +798,16 @@ function setinvalid(attr, invalid=true){
   $('body').on('click', '.insertAttribute', function() {
     var fields = [{ "type": "attributes", "value": [{"name":"", "sValue": ""}]}];
     var html = genFields(fields);
-    $(this).closest('div').append(html);
+    $('div.section', $(this).closest('div')).append(html);
+    $('div.section', $(this).closest('div')).show();
     feather.replace();
     applyAutoComplete();
   });
   $('body').on('click', '.insertRequiredAttribute', function() {
     var fields = [{ "type": "requiredAttributes", "value": [{"name":"", "sValue": ""}]}];
     var html = genFields(fields);
-    $(this).closest('div').append(html);
+    $('div.section', $(this).closest('div')).append(html);
+    $('div.section', $(this).closest('div')).show();
     feather.replace();
   });
 
@@ -895,6 +902,11 @@ function setinvalid(attr, invalid=true){
     $('div.environments').append(genFields(fields));
     feather.replace();
     return;
+  });
+
+  $('body').on('click', '.togglesection', function () {
+    console.log($(this).parent().parent().parent().find('div.section'));
+    $(this).parent().parent().parent().find('div.section').first().fadeToggle();
   });
 
   $('#formclusterModuleTemplate').change(function () {

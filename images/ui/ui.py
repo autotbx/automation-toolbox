@@ -214,7 +214,7 @@ def plan(namespace, name):
 @login_required
 def new_states():
   form = json.dumps(utils.getForm('states'))
-  return render_template("edit.html",pluralTitle='State', name=f"New State", plural='states', action="create", form=form, namespaces=utils.getNamespace(),username=current_user.username, namespace=None)
+  return render_template("edit.html",pluralTitle='State', name=f"New State", plural='states', mode="create", action="create", form=form, namespaces=utils.getNamespace(),username=current_user.username, namespace=None)
 
 @app.route('/states', methods=['POST'])
 @app.route('/states/', methods=['POST'])

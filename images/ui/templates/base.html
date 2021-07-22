@@ -52,7 +52,7 @@
           </div>
 	  <button class="custbutton btn btn-secondary" type="button" onclick="location.href='/logout'">Connected as {{username}} - Sign Out</button>
         </div>
-        <div style="font-weight: bold; float: left; padding-top: 5px;"><i data-feather="chevron-right"></i> TERRAFORM BOARD</div>
+        <div style="font-weight: bold; float: left; padding-top: 5px;"><i data-feather="chevron-right"></i> AUTOMATION TOOLBOX</div>
       </div>
     </div>
     <div class="row"></div>
@@ -60,9 +60,7 @@
       <div class="row">
         <nav class="col-md-2 d-none d-md-block sidebar">
           <div style="padding-top: 70px"></div>
-            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted"> <span>Namespaced Resources</span></h6>
-            <br />
-
+            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted"> <span>Resources</span></h6>
           <div class="sidebar-sticky">
             <ul class="nav flex-column">
                 <li class="nav-item">
@@ -91,7 +89,7 @@
                 </li>
               </ul>
         
-            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted"> <span>Cluster Resources</span></h6>
+            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted"> <span>Global Resources</span></h6>
             <ul class="nav flex-column mb-2">
               <li class="nav-item">
                 <a class="nav-link  {% if '/clustermoduletemplates' in request.path %}active{% endif %}" href="/cluster/clustermoduletemplates/">
@@ -101,7 +99,6 @@
                 <a class="nav-link  {% if '/clusterproviders' in request.path %}active{% endif %}" href="/cluster/clusterproviders/">
                   <span data-feather="command"></span>
                   <span>Cluster Providers</span>
-                  
                 </a>
               </li>
             </ul>

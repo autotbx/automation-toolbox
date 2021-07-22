@@ -289,13 +289,13 @@ function getInput(type, value="", required=false, disabled=false, password=false
       case "nValue":
       case "liValue":
       case "lnValue":
-        h =  '<input type="number" '+required+' value="'+escape(value)+'" '+disabled+' class="form-control" placeholder="Attribute Value" />';
+        h =  '<input type="number" '+required+' value="'+value+'" '+disabled+' class="form-control" placeholder="Attribute Value" />';
       break;
       case "lsValue":
       case "sValue":
         var t = (password) ? 'password' : 'text';
         var complete = (password) ? 'autocomplete="off" readonly onclick="this.removeAttribute(\'readonly\');"' : '';
-        h =  '<input type="'+t+'" '+required+' value="'+escape(value)+'" '+disabled+' '+complete+' class="form-control" placeholder="Attribute Value" />';
+        h =  '<input type="'+t+'" '+required+' value="'+value+'" '+disabled+' '+complete+' class="form-control" placeholder="Attribute Value" />';
       break;
       case "bValue":
       case "lbValue":  
@@ -381,7 +381,7 @@ function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="si
   if (type == "defineRequiredAttributes") {
     html += `
     <div class="col-sm-8 col-form-label attrname ">
-      <input type="text" class="form-control" placeholder="Attribute Name" `+disabled+` value="`+escape(attrname)+`" />
+      <input type="text" class="form-control" placeholder="Attribute Name" `+disabled+` value="`+attrname+`" />
     </div>
     `;  
   }
@@ -391,7 +391,7 @@ function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="si
     var attrvalcol  = (padding) ? 3 : 5; 
     html += `
     <div class="col-sm-`+attrcol+` col-form-label attrname ">
-      <input type="text" class="form-control" placeholder="Attribute Name" `+disabled+` value="`+escape(attrname)+`" />
+      <input type="text" class="form-control" placeholder="Attribute Name" `+disabled+` value="`+attrname+`" />
     </div>
     <div class="col-sm-`+attrvalcol+`  col-form-label attrvalue ">
       `+getInput(attrtype, attrvalue, required, false, (attrname.includes('password')))+`
@@ -406,7 +406,7 @@ function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="si
     var attrcol  = (padding) ? 5 : 8;
     html += `
     <div class="col-sm-`+attrcol+` col-form-label attrname ">
-      <input type="text" class="form-control" placeholder="Attribute Name" `+disabled+` `+required+` value="`+escape(attrname)+`" />
+      <input type="text" class="form-control" placeholder="Attribute Name" `+disabled+` `+required+` value="`+attrname+`" />
     </div>
     `;
   }
@@ -445,7 +445,7 @@ function genFields(fields) {
     fields.forEach(function(field) {
       var required = ("required" in field && field['required']) ? 'required' : '';
       var disabled = ("disabled" in field && field['disabled']) ? 'disabled' : '';
-      var value = ("value" in field) ? escape(field['value']) : '';
+      var value = ("value" in field) ? field['value'] : '';
       var requiredLabel = ("required" in field && field['required']) ? '<strong>'+field['name']+' *</strong>' : field['name'];
       if (field['type'] != "attributes" && field['type'] != 'requiredAttributes' && field['type'] != 'fillRequiredAttributes' && field['type'] != "ansibleRoles" && field['type'] != "ansibleHosts" && field['type'] != "environments") {
         html += '<div class="form-group row">';
@@ -617,6 +617,8 @@ function genFields(fields) {
           });
         break
         case "attributes":
+          console.log('aaaa');
+          console.log(field);
           field['value'].forEach(function(element) {
             html += '<div class="form-group row">';
             var attrtype = getAttributeType(element);
@@ -759,6 +761,9 @@ function setinvalid(attr, invalid=true){
   // TODO: HERE
   // plan details
   // env name can be empty at crd
+  // hide + icons on show tpl
+  // autoplanrequest sur templates...
+  // module ondelete, pas de planrequest
   
   $('body').on('focusin', '.attrtype', function(){
     $(this).data('val', $(this).val());
@@ -884,6 +889,7 @@ function setinvalid(attr, invalid=true){
       $('div.hattr').html(genForm(data));
       $('div.hattr input').attr('disabled', '')
       $('div.hattr select').attr('disabled', '')
+      feather.replace();
     });
     $(".pop-outer").fadeIn("slow");
   });

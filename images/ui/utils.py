@@ -705,20 +705,20 @@ def updateFieldsValues(form, plural, obj):
     form = updateFieldsValue(form, "spec", "tfExecutorImagePullPolicy", "value", obj['spec']['tfExecutorImagePullPolicy'])
     form = updateFieldsValue(form, "spec", "tfGeneratorImage", "value", obj['spec']['tfGeneratorImage'])
     form = updateFieldsValue(form, "spec", "tfGeneratorImagePullPolicy", "value", obj['spec']['tfGeneratorImagePullPolicy'])
-    form = updateFieldsValue(form, "spec", "clusterProviders", "values", obj['spec']['clusterProviders'] if "clusterProviders" in obj["spec"] else "")
-    form = updateFieldsValue(form, "spec", "environment", "value", obj['spec']['environment'] if 'environment' in obj["spec"] else "")
+    form = updateFieldsValue(form, "spec", "clusterProviders", "values", obj['spec']['clusterProviders'] if "clusterProviders" in obj["spec"] else [])
+    form = updateFieldsValue(form, "spec", "environment", "value", obj['spec']['environment'] if 'environment' in obj["spec"] else [])
   elif plural == "providers" or plural == "clusterproviders":
     form = updateFieldsValue(form, "spec", "name", "value", obj['metadata']['name'])
     form = updateFieldsValue(form, "spec", "name", "disabled", True)
     form = updateFieldsValue(form, "spec", "autoPlanRequest", "value", obj['spec']['autoPlanRequest'])
     form = updateFieldsValue(form, "spec", "type", "value", obj['spec']['type'])
-    form = updateFieldsValue(form, "environments", "environments", "value", obj['spec']['environments'] if 'environments' in obj["spec"] else "")
-    form = updateFieldsValue(form, "attributes", "attributes", "value", obj['spec']['attributes'] if 'attributes' in obj["spec"] else "")
+    form = updateFieldsValue(form, "environments", "environments", "value", obj['spec']['environments'] if 'environments' in obj["spec"] else [])
+    form = updateFieldsValue(form, "attributes", "attributes", "value", obj['spec']['attributes'] if 'attributes' in obj["spec"] else [])
   elif plural == "moduletemplates" or plural == "clustermoduletemplates":
     form = updateFieldsValue(form, "spec", "name", "value", obj['metadata']['name'])
     form = updateFieldsValue(form, "spec", "name", "disabled", True)
-    form = updateFieldsValue(form, "environments", "environments", "value", obj['spec']['environments'] if 'environments' in obj["spec"] else "")
-    form = updateFieldsValue(form, "defaultAttributes", "defaultAttributes", "value", obj['spec']['defaultAttributes'] if 'defaultAttributes' in obj["spec"] else "")
+    form = updateFieldsValue(form, "environments", "environments", "value", obj['spec']['environments'] if 'environments' in obj["spec"] else [])
+    form = updateFieldsValue(form, "defaultAttributes", "defaultAttributes", "value", obj['spec']['defaultAttributes'] if 'defaultAttributes' in obj["spec"] else [])
     if "ansibleAttributes" in obj['spec']:
       if  "credentials" in obj['spec']['ansibleAttributes']:
         form = updateFieldsValue(form, "ansibleSpec", "ansible_cred_type", "value", obj['spec']['ansibleAttributes']['credentials']['type'] if "type" in obj['spec']['ansibleAttributes']["credentials"] else '')
@@ -726,8 +726,8 @@ def updateFieldsValues(form, plural, obj):
         form = updateFieldsValue(form, "ansibleSpec", "ansible_cred_password", "value", obj['spec']['ansibleAttributes']['credentials']['password'] if "password" in obj['spec']['ansibleAttributes']["credentials"] else '')
         form = updateFieldsValue(form, "ansibleSpec", "ansible_cred_ssh_key", "value", obj['spec']['ansibleAttributes']['credentials']['ssh_key'] if "ssh_key" in obj['spec']['ansibleAttributes']["credentials"] else '')
       form = updateFieldsValue(form, "ansibleSpec", "ansible_defaultGalaxyServer", "value", obj['spec']['ansibleAttributes']['defaultGalaxyServer'] if "defaultGalaxyServer" in obj['spec']['ansibleAttributes'] else '')
-      form = updateFieldsValue(form, "ansibleRoles", "ansibleRoles", "value", obj['spec']['ansibleAttributes']['roles'] if "roles" in obj['spec']['ansibleAttributes'] else '')
-      form = updateFieldsValue(form, "ansibleVars", "ansibleVars", "value", obj['spec']['ansibleAttributes']['vars'] if "vars" in obj['spec']['ansibleAttributes'] else '')
+      form = updateFieldsValue(form, "ansibleRoles", "ansibleRoles", "value", obj['spec']['ansibleAttributes']['roles'] if "roles" in obj['spec']['ansibleAttributes'] else [])
+      form = updateFieldsValue(form, "ansibleVars", "ansibleVars", "value", obj['spec']['ansibleAttributes']['vars'] if "vars" in obj['spec']['ansibleAttributes'] else [])
     attrs = []
     if 'requiredAttributes' in obj['spec']:
       for attr in obj['spec']['requiredAttributes']:
@@ -771,7 +771,7 @@ def updateFieldsValues(form, plural, obj):
         form = updateFieldsValue(form, "ansibleSpec", "ansible_cred_ssh_key", "value", obj['spec']['ansibleAttributes']['credentials']['ssh_key'] if "ssh_key" in obj['spec']['ansibleAttributes']["credentials"] else '')
       form = updateFieldsValue(form, "ansibleSpec", "ansible_defaultGalaxyServer", "value", obj['spec']['ansibleAttributes']['defaultGalaxyServer'] if "defaultGalaxyServer" in obj['spec']['ansibleAttributes'] else '')
       form = updateFieldsValue(form, "ansibleRoles", "ansibleRoles", "value", obj['spec']['ansibleAttributes']['roles'] if "roles" in obj['spec']['ansibleAttributes'] else [])
-      form = updateFieldsValue(form, "ansibleVars", "ansibleVars", "value", obj['spec']['ansibleAttributes']['vars'] if "vars" in obj['spec']['ansibleAttributes'] else '')
+      form = updateFieldsValue(form, "ansibleVars", "ansibleVars", "value", obj['spec']['ansibleAttributes']['vars'] if "vars" in obj['spec']['ansibleAttributes'] else [])
       form = updateFieldsValue(form, "ansibleHosts", "ansibleHosts", "value", obj['spec']['ansibleAttributes']['targets'] if "targets" in obj['spec']['ansibleAttributes'] else [])
   return form
 

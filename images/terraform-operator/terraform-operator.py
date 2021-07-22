@@ -99,7 +99,7 @@ def createJob(namespace, name, tftype, planRequest):
   env_tf_path = client.V1EnvVar(name="TF_PATH", value="/tf/main.tf")
   env_tf_ns_val  = client.V1EnvVarSource(field_ref=client.V1ObjectFieldSelector(field_path="metadata.namespace"))
   #env_tf_ns = client.V1EnvVar(name="K8S_NAMESPACE", value_from=env_tf_ns_val)
-  env_tf_ns = client.V1EnvVar(name="K8S_NAMESPACE", value="default")
+  env_tf_ns = client.V1EnvVar(name="K8S_NAMESPACE", value=namespace)
   env = [env_tf_ns, env_tf_path, env_tf_secret, env_tf_target, env_tf_state]
   vols_mount = [client.V1VolumeMount(name="tf", mount_path="/tf")]
 
@@ -117,7 +117,7 @@ def createJob(namespace, name, tftype, planRequest):
   body.spec = client.V1JobSpec(ttl_seconds_after_finished=600, template=template.template, backoff_limit=backoff_limit)
 
   try: 
-    api_response = batch_api_instance.create_namespaced_job("default", body, pretty=True)
+    api_response = batch_api_instance.create_namespaced_job(namespace, body, pretty=True)
     return api_response.metadata.name
   except ApiException as e:
     print("Exception when calling BatchV1Api->create_namespaced_job: %s\n" % e)
@@ -180,7 +180,7 @@ def autoPlan(body, name, namespace, logger, **kwargs):
       logger.error("Exception when calling CustomObjectsApi->create_namespaced_custom_object: %s\n" % e)
 
 def create_plan(logger, stateName, namespace, planRequest, originalPlan=None, originalPlanRequest=None, targets=None):
-  state = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, 'default', 'states', stateName)
+  state = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'states', stateName)
   originalPlanRequest = originalPlanRequest if originalPlanRequest != None else planRequest
   annotations = {'planRequest': originalPlanRequest}
   body = {
@@ -393,7 +393,7 @@ def _ansible_run(name: str, namespace: str, check: bool, plan: bool):
   body.spec = client.V1JobSpec(ttl_seconds_after_finished=600, template=template.template, backoff_limit=backoff_limit)
   
   try: 
-    api_response = batch_api_instance.create_namespaced_job("default", body, pretty=True)
+    api_response = batch_api_instance.create_namespaced_job(namespace, body, pretty=True)
     return api_response.metadata.name
   except ApiException as e:
     print("Exception when calling BatchV1Api->create_namespaced_job: %s\n" % e)

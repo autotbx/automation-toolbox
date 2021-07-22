@@ -9,7 +9,8 @@ body {
     width: 16px;
     height: 16px;
     vertical-align: text-bottom;
-  }
+
+}
 
 .tfoutput {
     font-size: 0.8em; 
@@ -183,6 +184,9 @@ hr.env {
     background-color: #304250;
     width: 100%;
     padding: 15px;    
+    position: fixed;
+    top: 0;
+    z-index: 100;
 }
 /* Login */
 .loginHeader {
@@ -286,6 +290,16 @@ fieldset {
     padding: 15px;
     margin-bottom: 10px;
     border: 0.5px solid #304250;
-    margin-right: 12%;
+    margin-right: 5%;
     background-color: #1B2A32;
 }
+.form-group {
+    margin-bottom: 10px !important;
+}
+#mainContainer {
+        width: 100vw;
+        height: calc(100Vh - 70px);
+        position: absolute;
+        top: 70px;
+}
+    

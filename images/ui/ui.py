@@ -272,7 +272,7 @@ def editCluster(plural, name):
   
   form = json.dumps(utils.updateFieldsValues(utils.getForm(plural), plural, obj))
 
-  return render_template("edit.html",pluralTitle=plural.title(), plural=plural,  action="edit", name=name, namespace=None, form=form, namespaces=utils.getNamespace(),username=current_user.username)
+  return render_template("edit.html",pluralTitle=plural.title(), plural=plural,  action="edit", name=name, namespace=session.get("namespace",None), form=form, namespaces=utils.getNamespace(),username=current_user.username)
 
 @app.route('/cluster/<plural>/_new')
 @login_required
@@ -281,7 +281,7 @@ def newCluster(plural):
     abort(404)
   #form =  utils.getForm(plural)
   form = json.dumps(utils.getForm(plural))
-  return render_template("edit.html",pluralTitle=plural.title(), action="create", namespace=None, name=f"New {plural.title()}", plural=plural, mode="create", form=form, namespaces=utils.getNamespace(),username=current_user.username)
+  return render_template("edit.html",pluralTitle=plural.title(), action="create", namespace=session.get("namespace",None), name=f"New {plural.title()}", plural=plural, mode="create", form=form, namespaces=utils.getNamespace(),username=current_user.username)
 
 
 @app.route('/<plural>')

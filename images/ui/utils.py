@@ -772,7 +772,7 @@ def updateFieldsValues(form, plural, obj):
       form = updateFieldsValue(form, "ansibleSpec", "ansible_defaultGalaxyServer", "value", obj['spec']['ansibleAttributes']['defaultGalaxyServer'] if "defaultGalaxyServer" in obj['spec']['ansibleAttributes'] else '')
       form = updateFieldsValue(form, "ansibleRoles", "ansibleRoles", "value", obj['spec']['ansibleAttributes']['roles'] if "roles" in obj['spec']['ansibleAttributes'] else [])
       form = updateFieldsValue(form, "ansibleVars", "ansibleVars", "value", obj['spec']['ansibleAttributes']['vars'] if "vars" in obj['spec']['ansibleAttributes'] else '')
-      form = updateFieldsValue(form, "ansibleHosts", "ansibleHosts", "value", [target['fqdn'] for target in obj['spec']['ansibleAttributes']['targets']] if "targets" in obj['spec']['ansibleAttributes'] else [])
+      form = updateFieldsValue(form, "ansibleHosts", "ansibleHosts", "value", obj['spec']['ansibleAttributes']['targets'] if "targets" in obj['spec']['ansibleAttributes'] else [])
   return form
 
 def updateFieldsValue(form, section, keyid, attr, val):

@@ -2,7 +2,7 @@
 {% block customcss %}{{css}}{% endblock %}
 {% block title %}{{pluralTitle}}{% endblock %}
 {% block nav %}
-  {% if namespace %}
+  {% if plural != "clusterproviders" and plural != "clustermoduletemplates" %}
     {% if plural == "states" %}
        States <span data-feather="chevron-right"></span> 
        <a href="/{{ plural }}/{{namespace}}/{{ name }}">{{ name }}</a><span data-feather="chevron-right"></span> Edition
@@ -45,7 +45,7 @@
 <div class="container">
     <div class="row">
       <div class="col cust formcontent">
-      {% if namespace == None and plural != "states" %}
+      {% if plural == "clustermoduletemplates" or plural == "clusterproviders" %}
       <form method="POST" action="/cluster/{{plural}}/?{{action}}=true" class="needs-validation" novalidate>
       {% elif namespace == None and plural == "states" %}
       <form method="POST" action="/states/?{{action}}=true" class="needs-validation" novalidate></form>
@@ -97,13 +97,12 @@ if (plural == "modules") {
   applyAutoComplete();
 }
 
-
-function getFormAttributes(obj, required=false) {
+function getFormAttributes(obj, required=false, allowempty=false) {
   var attributes= [];
-  obj.find('div.row').each(function() {
+  obj.find('div.row').not('div.ansibleFQDN').each(function() {
     var type = $('select option:selected', $(this)).val();
     var attrName = $('div.attrname > input', $(this)).val();
-    if(attrName == "") {
+    if(!(allowempty) && attrName == "") {
       return;
     }
     switch(type) {
@@ -156,6 +155,7 @@ function getFormAttributes(obj, required=false) {
   });
   return attributes;
 }
+
 function getEnvAttributes(key, ansible=false) {
   envAttributes = [];
   $('form').find('div.env').each(function() {
@@ -163,9 +163,7 @@ function getEnvAttributes(key, ansible=false) {
     if (envname == "") {
       return;
     }
-    //console.log(envname);
     envattr = $('div.attributes, div.defaultAttributes', $(this));
-    //console.log(getFormAttributes(envattr));
     var  env = {}
     env['name'] = envname;
     env[key] = getFormAttributes(envattr);
@@ -179,6 +177,21 @@ function getEnvAttributes(key, ansible=false) {
   });
   return envAttributes;
 }
+
+function getAnsibleTargets(allowempty=false) {
+  var ansibleTargets = [];
+  $('div.ansibleHosts').find('div.ansibleTarget').each(function() {
+    var host = $('div.ansibleFQDN input', $(this)).val();
+    var target = {'fqdn': host};
+    var vars = getFormAttributes($(this), false, allowempty);
+    if (vars.length != 0) {
+      target['vars'] = vars;
+    }
+    ansibleTargets.push(target)
+  });
+  return ansibleTargets;
+}
+
 function getAnsibleAttributes(where) {
   var ansibleAttributes= {}
   var ansibleCredUser =  $('#formansible_cred_user', where).val();
@@ -186,7 +199,6 @@ function getAnsibleAttributes(where) {
   var ansibleCredType = $('#formansible_cred_type', where).val();
   var ansibleCredSSH = $('#formansible_cred_ssh_key', where).val();
   var ansibleGalaxy = $('#formansible_defaultGalaxyServer', where).val();
-
   if (ansibleCredUser != "" || ansibleCredPass != "" || ansibleCredType != "" || ansibleCredSSH != "") {
     ansibleAttributes["credentials"] = {}
     ansibleAttributes["credentials"]["user"] = ansibleCredUser;
@@ -197,28 +209,23 @@ function getAnsibleAttributes(where) {
   if (ansibleGalaxy != "") {
     ansibleAttributes["defaultGalaxyServer"] = ansibleGalaxy;
   }
-
-    var roles = getFormAttributes($(where).find('div.ansibleRoles'));
+  var roles = getFormAttributes($(where).find('div.ansibleRoles'));
+  if (roles.length != 0) {
+    roles = getFormAttributes($(where).find('div.ansibleRoles'))[0]['lsValue'];
     if (roles.length != 0) {
-      roles = getFormAttributes($(where).find('div.ansibleRoles'))[0]['lsValue'];
-      if (roles.length != 0) {
-        ansibleAttributes["roles"] = roles;
-      }
+      ansibleAttributes["roles"] = roles;
     }
-    if(where == 'form') {
-      var ansiblevars  = getFormAttributes($(where).find('div.ansibleVars').filter(function() { return $(this).closest('div.env').length == 0; } ));
-    }
-    else {
-      var ansiblevars  = getFormAttributes($(where).find('div.ansibleVars'))
-    }
-    if (Object.keys(ansiblevars).length != 0) {
-      ansibleAttributes["vars"] = ansiblevars;
-    }
-    //$('form').find('div.ansibleVars').filter(function() { return $(this).closest('div.env').length == 0; } );
-    return ansibleAttributes;
+  }
+  var ansiblevars  = (where == 'form') ? getFormAttributes($(where).find('div.ansibleVars').filter(function() { return $(this).closest('div.env').length == 0; })) : getFormAttributes($(where).find('div.ansibleVars'));
+  if (Object.keys(ansiblevars).length != 0) {
+    ansibleAttributes["vars"] = ansiblevars;
+  }
+  var ansibleTargets = getAnsibleTargets();
+  if (ansibleTargets.length != 0) {
+    ansibleAttributes["targets"] = ansibleTargets;
+  }
+  return ansibleAttributes;
 }
-
-
 
 function applyAutoComplete() {
   if (completetype == "" || completetpl == "") {
@@ -247,50 +254,6 @@ function applyAutoComplete() {
   });
 }
 
-function addAttribute(obj, attribute, required=false, disabled=false) {
-  ro = (required) ? 'disabled' : ''
-  var html = '<div class="form-group row"><div class="col-sm-2 col-form-label attrtype"><select class="form-control attrtype" '+ro+'>';
-  attrtypes.forEach(function(element) {
-    var selected = (element['type'] == attribute['type']) ? 'selected' : '';
-    html += '<option value="'+element['type']+'" '+selected+'>'+element['name']+'</option>';
-  });
-  html += '</select></div>';
-  val = ("value" in attribute) ? attribute['value'] : '';
-
-  if(attribute['type'].startsWith('l')) {
-    html += '<div class="col-sm-8 col-form-label attrname"><input type="text" '+ro+' value="'+attribute['name']+'" class="form-control" placeholder="Attribute Name" /></div>';
-  }
-  else {
-    html += '<div class="col-sm-3 col-form-label attrname ">';
-    html += '<input type="text" '+ro+' value="'+attribute['name']+'" class="form-control" placeholder="Attribute Name" />';
-    html += '</div>';
-    html += '<div class="col-sm-5 col-form-label attrvalue">'+getInput(attribute['type'], required, val, disabled)+'</div>';
-  }
-  html += '<div class="col-sm-1 col-form-label attrbtn">';
-  if(attribute['type'].startsWith('l') && !disabled) {
-    html += '<span data-feather="plus-circle" class="btn-del-attribute addElementAttribute"></span>';
-  }
-  if (!required) {
-    html += '<span data-feather="trash-2" class="btn-del-attribute delAttribute"></span>';
-  }
-  html += '</div>';
-  if(attribute['type'].startsWith('l')) {
-    if("value" in attribute) {
-      attribute['value'].forEach(function(element) {
-      //console.log(element);
-      //console.log(element[attribute['type']]);
-      html += '<div class="col-sm-2 col-form-label"></div>';
-      html += '<div class="col-sm-8 col-form-label attrname">'+getInput(attribute['type'], required, element, disabled)+'</div>';
-      html += '<div class="col-sm-1 col-form-label"></div>';
-    });
-    }
-
-  }
-  html += '</div>';
-  obj.append(html);
-  feather.replace();
-}
-
 function setRequiredAttributes(namespace, name) {
   var url = (namespace == null) ? '/api/clustermoduletemplates/' : '/api/moduletemplates/'+namespace+'/';
   url +=  name + '/requiredAttributes'
@@ -303,9 +266,6 @@ function setRequiredAttributes(namespace, name) {
       $('div.requiredAttributes').show();
       $('div.requiredAttributes').append(genFields([{'id': 'requiredAttributes', 'type': 'fillRequiredAttributes', value: data }]));
       feather.replace();
-     // $.each(data, function(key, val) {
-      //  addAttribute($('div.requiredAttributes'), val, true);
-      //});
     });
   }
   else {
@@ -326,7 +286,8 @@ function getInput(type, value="", required=false, disabled=false, password=false
       case "lsValue":
       case "sValue":
         var t = (password) ? 'password' : 'text';
-        h =  '<input type="'+t+'" '+required+' value="'+escape(value)+'" '+disabled+' class="form-control" placeholder="Attribute Value" />';
+        var complete = (password) ? 'autocomplete="off" readonly onclick="this.removeAttribute(\'readonly\');"' : '';
+        h =  '<input type="'+t+'" '+required+' value="'+escape(value)+'" '+disabled+' '+complete+' class="form-control" placeholder="Attribute Value" />';
       break;
       case "bValue":
       case "lbValue":  
@@ -377,14 +338,16 @@ function genForm(sections) {
   return html;
 }
 
-function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="simple", disabled=false) {
+function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="simple", disabled=false, padding=false, add="", del="") {
+  console.log('type: '+ attrtype+' name : '+attrname);
   var html = "";
-  //var type = (attrtype.startsWith('l')) ? 'list': 'simple';
+  if (padding) {
+    html += '<div class="col-sm-3 col-form-label"></div>';
+  }
   html += '<div class="col-sm-2 col-form-label attrtype">';
   var disabled = (disabled) ? 'disabled' : '';
-  if (type == "simple" || type == "defineRequiredAttributes" || type == "fillRequiredAttributes" || type == "ansibleRoles" || type == "ansibleHosts") {
+  if (type == "simple" || type == "defineRequiredAttributes" || type == "fillRequiredAttributes" || type == "ansibleRoles" || type == "ansibleHosts" || (type == "list" && padding && attrname != "") ) {
     var toggle = (type == "simple") ? "toggleattrtype" : "";
-    //var selectdisable = (type == 'ansibleRoles' || type == "ansibleHosts" || type == "fillRequiredAttributes") ? 'disabled' : '';
     html += '<select class="form-control '+toggle+' '+disabled+' attrtype">';
     attrtypes.forEach(function(element) {
       var selected = (attrtype == element['type']) ? 'selected' : '';
@@ -393,9 +356,15 @@ function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="si
     html += '</select>';
   }
   html += '</div>';
-  var attrname_col = (type == "simple") ? '3' : '8';
-  var attrvalue_col = (type == "simple") ? '5' : '8';
-  
+  if (type == "simple") {
+    var attrname_col = (type == "simple") ? 3  : '8';
+    var attrvalue_col = (type == "simple") ? 5 - padding : '8';
+  }
+  else {
+    var attrname_col = (type == "simple") ? 3  : '8';
+    var attrvalue_col = (type == "simple") ? 5 : '8';
+  }
+
   if (type == "defineRequiredAttributes") {
     html += `
     <div class="col-sm-8 col-form-label attrname ">
@@ -403,14 +372,15 @@ function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="si
     </div>
     `;  
   }
-
   else if (type == "simple" && !(attrtype.startsWith('l')) || type == "fillRequiredAttributes" && !(attrtype.startsWith('l'))) {
     var required = (type == 'fillRequiredAttributes') ? true : false;
+    var attrcol  = (padding) ? 2 : 3; 
+    var attrvalcol  = (padding) ? 3 : 5; 
     html += `
-    <div class="col-sm-3 col-form-label attrname ">
+    <div class="col-sm-`+attrcol+` col-form-label attrname ">
       <input type="text" class="form-control" placeholder="Attribute Name" `+disabled+` value="`+escape(attrname)+`" />
     </div>
-    <div class="col-sm-5 col-form-label attrvalue ">
+    <div class="col-sm-`+attrvalcol+`  col-form-label attrvalue ">
       `+getInput(attrtype, attrvalue, required, false, (attrname.includes('password')))+`
     </div>
     `;
@@ -419,22 +389,23 @@ function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="si
     disabled = (type == "ansibleRoles" || type == "ansibleHosts" || type == 'fillRequiredAttributes') ? "disabled" : '';
     attrname = (type == "ansibleRoles") ? "roles": attrname;
     attrname = (type == "ansibleHosts") ? "fqdn": attrname;
+    var attrcol  = (padding) ? 5 : 8;
     html += `
-    <div class="col-sm-8 col-form-label attrname ">
+    <div class="col-sm-`+attrcol+` col-form-label attrname ">
       <input type="text" class="form-control" placeholder="Attribute Name" `+disabled+` value="`+escape(attrname)+`" />
     </div>
     `;
   }
   else {
+    var attrcol  = (padding) ? 5 : 8;
     html += `
-    <div class="col-sm-8 col-form-label attrvalue ">
+    <div class="col-sm-`+attrcol+` col-form-label attrvalue ">
       `+getInput(attrtype, attrvalue)+`
     </div>
     `;
   }
-  //var delclass = (type == "simple") ? "delAttribute" : 'delElementAttribute';
-  var addbtn = (((type == "simple" || type == "fillRequiredAttributes") && attrtype.startsWith('l')) || type == "ansibleRoles" || type == "ansibleHosts" ) ? '<span data-feather="plus-circle" class="btn-del-attribute addElementAttribute"></span>' : '';
-  var delclass = (type == "simple") ? 'delAttribute' : 'delElementAttribute';
+  var addbtn = (((type == "simple" || type == "fillRequiredAttributes") && attrtype.startsWith('l')) || ( padding && attrtype.startsWith('l')) && attrname != "" || type == "ansibleRoles" || type == "ansibleHosts" || add !="" ) ? '<span data-feather="plus-circle" class="btn-del-attribute addElementAttribute"></span>' : '';
+  var delclass = (del != "") ? del : (type == "simple") ? 'delAttribute' : 'delElementAttribute';
   var delbtn = (type != "ansibleRoles" && type != 'ansibleHosts' && type != "fillRequiredAttributes") ? '<span data-feather="trash-2" class="btn-del-attribute '+delclass+'"></span>' : '';
   var revealPW = (attrname.includes('password')) ? '<span data-feather="eye" class="btn-del-attribute revealPw"></span> ': '';
   html += `
@@ -472,7 +443,8 @@ function genFields(fields) {
         case 'integer':
           var type = (field['type'] == 'string') ? 'text' : 'number';
           type = (field['id'].includes('password')) ? 'password' : type;
-          html += '<input type="'+type+'" class="form-control" id="form'+field['id']+'" name="'+field['id']+'" value="'+value+'" '+required+' '+disabled+' />';
+          var complete = (field['id'].includes('password')) ? 'autocomplete="off" readonly onclick="this.removeAttribute(\'readonly\');"' : '';
+          html += '<input type="'+type+'" class="form-control" id="form'+field['id']+'" name="'+field['id']+'" value="'+value+'" '+complete+' '+required+' '+disabled+' />';
           if (disabled != '') {
             html += '<input type="hidden" name="'+field['id']+'" value="'+escape(value)+'" />';
           }
@@ -575,13 +547,38 @@ function genFields(fields) {
               html += '</fieldset></div>'
             });
         break;
-        case "ansibleRoles": 
         case "ansibleHosts":
+          html += '<div class="form-group row">';
+          html += formatAttributes("lsValue", "fqdn", "", "ansibleHosts", true );
+          html += '</div>'
+          console.log(field['value']);
+          field['value'].forEach(function(element) {
+            html += '<div class="ansibleTarget"><div class="form-group row ansibleFQDN">';
+            html += formatAttributes("lsValue",  "", element['fqdn'], "list", false, false, "addHostVar", "delAttribute");
+            html += '</div>';
+            if ("vars" in element) { 
+              element['vars'].forEach(function(hostvar) {
+                html += '<div  class="form-group row ansibleFQDN_vars">';
+                var attrtype = getAttributeType(hostvar);
+                html += formatAttributes(attrtype,  hostvar['name'], hostvar[attrtype], "simple", false, true, "", "delAttribute");
+                if (attrtype.startsWith('l')) {
+                  hostvar[attrtype].forEach(function(e) {
+                    html += formatAttributes(attrtype, "", e, "list", false, true, "", "delPaddingElementAttribute");
+                  });
+                }
+                html += '</div>';
+              });
+            }
+            html += '</div>';
+          });
+          html += '</div>';
+        break;
+        case "ansibleRoles": 
           var name = (field['type'] == "ansibleRoles") ? 'roles' : 'fqdn';
           html += '<div class="form-group row">';
           html += formatAttributes("lsValue", name, "", field['type'], true );
           field['value'].forEach(function(element) {
-            html += formatAttributes("lsValue",  "", element, "list" );
+            html += formatAttributes("lsValue",  "", element, "list", false, false, "", "delElementAttribute" );
           });
           html += '</div>';
         break;
@@ -609,10 +606,10 @@ function genFields(fields) {
           field['value'].forEach(function(element) {
             html += '<div class="form-group row">';
             var attrtype = getAttributeType(element);
-            html += formatAttributes(attrtype, element['name'], element[attrtype] )
+            html += formatAttributes(attrtype, element['name'], element[attrtype], "simple", false, false, "", "delAttribute" )
             if (attrtype.startsWith('l')) {
               element[attrtype].forEach(function(e) {
-                html += formatAttributes(attrtype, "", e, "list");
+                html += formatAttributes(attrtype, "", e, "list", false, false, "", "delElementAttribute");
               });
             }
             html += '</div>'
@@ -627,7 +624,7 @@ function genFields(fields) {
             html += '<span data-feather="trash-2" class="btn-del-attribute '+field['del']+'"></span>';
           }
           if (field['id'].includes('password')) {
-            html += '<span data-feather="eye" class="btn-del-attribute revealPw"></span>';
+            html += '<span data-feather="eye" class="btn-add-attribute revealPw"></span>';
           }
           html += '</div>'
         }
@@ -675,6 +672,7 @@ function genFields(fields) {
       attributes = attributes.concat(getFormAttributes($('form').find('div.attributes')));
       attributes = attributes.concat(getFormAttributes($('form').find('div.requiredAttributes')));
       var ansibleAttributes = getAnsibleAttributes('form');
+      var ansibleTargets = getAnsibleTargets();
       $('form').append('<textarea style="display: none" name="attributes">'+JSON.stringify(attributes)+'</textarea>');
       $('form').append('<textarea style="display: none" name="ansibleAttributes">'+JSON.stringify(ansibleAttributes)+'</textarea>');
     }
@@ -702,14 +700,13 @@ function genFields(fields) {
       $('form').append('<textarea style="display: none" name="environments">'+JSON.stringify(environments)+'</textarea>');
       $('form').append('<textarea style="display: none" name="ansibleAttributes">'+JSON.stringify(ansibleAttributes)+'</textarea>');
     }
-      $('#submit').click()
+    $('#submit').click();
   });
+
   // TODO: HERE
   // validation pour multi value
   // plan details
-  // vars ansible hosts
   // env name can be empty at crd
-  // Fixed header
   
   $('body').on('focusin', '.attrtype', function(){
     $(this).data('val', $(this).val());
@@ -727,11 +724,21 @@ function genFields(fields) {
     $(this).data('val', $(this).val());
     console.log(prev + '->'+current)
     var attrname = $('input', $(this).parent().next('div .attrname')).val();
-    var fields = [{ "type": "attributes", "value": [{"name":attrname}]}];
-    var val = (current.startsWith('l')) ? []: "";
-    fields[0]['value'][0][current] = val;
-    var html = genFields(fields);
-    $(this).parent().parent().replaceWith(html);
+    if($(this).parent().parent().hasClass('ansibleFQDN_vars')) {
+      var host = $('input', $(this).parent().parent().parent().find('div.ansibleFQDN')).val();
+      var fields = [{'type' : 'ansibleHosts', 'value': getAnsibleTargets(true)}];
+      var html = genFields(fields);
+      var ans = $(this).parent().parent().parent().parent();
+      $('div', ans).remove();
+      ans.append(html);
+    }
+    else {
+      var fields = [{ "type": "attributes", "value": [{"name":attrname}]}];
+      var val = (current.startsWith('l')) ? []: "";
+      fields[0]['value'][0][current] = val;
+      var html = genFields(fields);
+      $(this).parent().parent().replaceWith(html);
+    }
     feather.replace();
     applyAutoComplete();
   });
@@ -751,21 +758,50 @@ function genFields(fields) {
   });
 
   $('body').on('click', '.addElementAttribute', function() {
-    //var attrname = $('input', a.parent().next('div .attrname')).val();
     var attrtype = $('select option:selected', $(this).closest('div').prev().closest('div').prev().closest('div')).val();
     var fields = [{ "type": "attributes", "value": [{"name":""}]}];
     fields[0]['value'][0][attrtype] = "";
-    var html = formatAttributes(attrtype, "", "", "list");
-    $(this).closest('div').after(html);
+    if ($(this).closest('div').prev().parent().hasClass('ansibleFQDN')) {
+      var html = '<div class="form-group row ansibleFQDN_vars">';
+      html += formatAttributes("sValue", "", "", "simple", false, true);
+      html += '</div>'
+      $(this).closest('div').prev().parent().parent().append(html);
+    }
+    else if ($(this).closest('div').prev().parent().hasClass('ansibleFQDN_vars')) {
+      var html = formatAttributes(attrtype, "", "", "list", false, true);
+      $(this).closest('div').parent().append(html);
+    }
+    else if ($(this).parent().parent().parent().hasClass('ansibleHosts')) {
+      var html = '<div class="ansibleTarget"><div class="form-group row ansibleFQDN">';
+      html += formatAttributes("lsValue", "", "", "list", false, false, "addHostVar");
+      //formatAttributes("lsValue",  "", element['fqdn'], "list", false, false, "addHostVar");
+      html += "</div></div>";
+      $(this).parent().parent().parent().append(html);
+    }
+    else {
+      var html = formatAttributes(attrtype, "", "", "list");
+      $(this).closest('div').after(html);
+    }
     feather.replace();
     return;
   });
 
   $('body').on('click', '.delAttribute', function() {
-    $(this).closest('div').prev().closest('div.form-group.row').remove();
+    if ($(this).closest('div').prev().closest('div.form-group.row').hasClass('ansibleFQDN')) {
+      $(this).closest('div').prev().closest('div.form-group.row').parent().remove();
+    }
+    else {
+      $(this).closest('div').prev().closest('div.form-group.row').remove();
+    }
   });
 
   $('body').on('click', '.delElementAttribute', function() {
+    $(this).closest('div').prev().closest('div').prev().closest('div').remove();
+    $(this).closest('div').prev().closest('div').remove();
+    $(this).closest('div').remove();
+  });
+  $('body').on('click', '.delPaddingElementAttribute', function() {
+    $(this).closest('div').prev().closest('div').prev().closest('div').prev().closest('div').remove();
     $(this).closest('div').prev().closest('div').prev().closest('div').remove();
     $(this).closest('div').prev().closest('div').remove();
     $(this).closest('div').remove();

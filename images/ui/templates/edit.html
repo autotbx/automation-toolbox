@@ -351,7 +351,7 @@ function genForm(sections) {
   return html;
 }
 
-function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="simple", disabled=false, padding=false, add="", del="") {
+function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="simple", disabled=false, padding=false, add="", del="", required=false) {
   console.log('type: '+ attrtype+' name : '+attrname);
   var html = "";
   if (padding) {
@@ -414,7 +414,7 @@ function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="si
     var attrcol  = (padding) ? 5 : 8;
     html += `
     <div class="col-sm-`+attrcol+` col-form-label attrvalue ">
-      `+getInput(attrtype, attrvalue)+`
+      `+getInput(attrtype, attrvalue, required)+`
     </div>
     `;
   }
@@ -610,7 +610,8 @@ function genFields(fields) {
             html += formatAttributes(attrtype, element['name'], element[attrtype], "fillRequiredAttributes", true );
             if (attrtype.startsWith('l')) {
               element[attrtype].forEach(function(e) {
-                html += formatAttributes(attrtype, "", e, "list");
+                //attrtype="sValue", attrname="", attrvalue="", type="simple", disabled=false, padding=false, add="", del="", required=false)
+                html += formatAttributes(attrtype, "", e, "list", false, false, "", "", true);
               });
             }
             html += '</div>';
@@ -832,13 +833,13 @@ function setinvalid(attr, invalid=true){
       var html = formatAttributes(attrtype, "", "", "list", false, true);
       $(this).closest('div').parent().append(html);
     }
-    else if ($(this).parent().parent().parent().hasClass('ansibleHosts')) {
+    else if ($(this).parent().parent().parent().parent().hasClass('ansibleHosts')) {
       var html = '<div class="ansibleTarget"><div class="form-group row ansibleFQDN">';
       html += formatAttributes("lsValue", "", "", "list", false, false, "addHostVar");
       html += "</div></div>";
       $(this).parent().parent().parent().append(html);
     }
-    else if ($(this).parent().parent().parent().hasClass('requiredAttributes')) {
+    else if ($(this).parent().parent().parent().parent().hasClass('requiredAttributes')) {
       var html = formatAttributes(attrtype, "", "", "list").replace('type=', 'required type=');
       $(this).closest('div').after(html);
     }

@@ -6,6 +6,7 @@ COPY ui.py /ui/
 COPY utils.py /ui/
 COPY templates /ui/templates
 COPY static /ui/static
+COPY users.json /ui/
 
 WORKDIR /ui
 CMD python3 -u ui.py

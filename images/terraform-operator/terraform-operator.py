@@ -377,7 +377,7 @@ def _ansible_run(name: str, namespace: str, check: bool, plan: bool):
   env = [env_ansible_config, env_ansible_log, env_namespace, env_ansible_run]
 
   a5e_container = client.V1Container(name=a5e_container_name, image=a5e_container_image, command=a5e_command,args=run_args, volume_mounts=a5e_vols_mounts, env=env)#, image_pull_policy=tf_image_policy, volume_mounts=vols_mount, env=env)
-  gen_a5e_container = client.V1Container(name=gen_a5e_container_name, image=gen_a5e_container_image, command=gen_a5e_command, args=gen_a5e_args, volume_mounts=gen_a5e_vols_mount)#, image_pull_policy=gentf_image_policy, env=env)
+  gen_a5e_container = client.V1Container(name=gen_a5e_container_name, image=gen_a5e_container_image, command=gen_a5e_command, args=gen_a5e_args, volume_mounts=gen_a5e_vols_mount, env=env)#, image_pull_policy=gentf_image_policy, env=env)
 
   vols = [client.V1Volume(name="ansible-config", config_map=client.V1ConfigMapVolumeSource(name="ansible-config")), client.V1Volume(name="data", empty_dir={})]
 
@@ -494,30 +494,28 @@ def jobSucceeded(diff, status, namespace, logger, body, **kwargs):
     status = {f'{tftype}StartTime': body.status['startTime'], f'{tftype}Status' : 'Completed', f'{tftype}CompleteTime' : end}
     plan_name = body.metadata.annotations['planName']
     updateCustomStatus(logger, 'plans', namespace, plan_name, status)
-
     plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', plan_name)
 
-
     if tftype == "apply":
+      # TODO: targets not mandatory ?
       targets = plan["spec"]["targets"]
       hosts = []
+      module_names = []
       for target in targets:
         module_name = target.split(".")[1]
-
+        module_names.append(module_name)
         module = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'modules', module_name)
 
-        if "ansibleAttributes" in module["spec"]:
+        if "ansibleAttributes" in module["spec"] and "targets" in module["spec"]["ansibleAttributes"]:
           for host in module["spec"]["ansibleAttributes"]["targets"]:
-            if type(host) is dict:
-              host_str = list(host.keys())[0]
-            else:
-              host_str = host
-            hosts.append(host_str)
-
+            hosts.append(host['fqdn'])
+      if len(hosts) == 0:
+        logger.info(f"No FQDN found for module {modules_names}, skipping AnsiblePlan creation")
+        return
       plan_body = {
         'apiVersion': f'{API_GROUP}/{API_VERSION}',
         'kind': 'AnsiblePlan',
-        'metadata' : client.V1ObjectMeta(generate_name=f'ter-{plan_name}-', namespace=namespace, labels={'source': 'TerraformPlan'}),
+        'metadata' : client.V1ObjectMeta(generate_name=f'ter-{plan_name}-', namespace=namespace, labels={'source': 'TerraformPlan', "terraformPlan": plan_name}),
         'spec': {
           "approved": False,
           "auto": {
@@ -528,7 +526,6 @@ def jobSucceeded(diff, status, namespace, logger, body, **kwargs):
       }
       api_response = custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', plan_body)
       updateCustomStatus(logger, 'plans', namespace, plan_name, {'AnsiblePlan': api_response['metadata']['name']})
-    
 
 @kopf.on.field('batch', 'v1', 'jobs', field="status.active")
 def jobActive(diff, status, namespace, logger, body, **kwargs):
@@ -579,7 +576,7 @@ def ansPlanFailed(diff, status, namespace, logger, body, **kwargs):
   ansible_plan = body['metadata']['annotations']['ansiblePlan']
   # TODO check if other path possible
   if diff[0][3] > 0:
-    status = {'Status' : 'Failed', 'CompleteTime' : "Failed"}
+    status = {'Status' : 'Failed', 'CompleteTime' : body.status['completionTime']}
     updateCustomStatus(logger, 'ansibleplans', namespace, ansible_plan, status)
 
 

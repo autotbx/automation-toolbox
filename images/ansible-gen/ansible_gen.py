@@ -2,7 +2,7 @@
 """
 Module to generate Ansible inventoriy and playbooks from Terraform operator completion
 """
-from sys import api_version
+from sys import api_version, exit
 from typing import Iterable
 import os
 import logging
@@ -23,22 +23,22 @@ ANSIBLE_ATTRIBUTES = 'ansibleAttributes'
 ATTRIBUTE_TYPE = ['iValue', 'nValue', 'sValue', 'bValue', 'liValue', 'lfValue', 'lsValue', 'lbValue']
 
 class AnsibleCredentials:
-    def __init__(self, login, password, sshkey = None, con_type = "ssh", winrm_server_cert_validation = "ignore"):
-        self._login = login
-        self._password = password
-        self._sshkey = sshkey
+    def __init__(self, login = None, password = None, sshkey = None, con_type = "ssh", winrm_server_cert_validation = "ignore"):
+        self._login = login if login != None else 'root'
+        self._password = password if password != None else ''
+        self._sshkey = sshkey if sshkey != None else ''
         self._con_type = con_type
         self._winrm_server_cert_validation = winrm_server_cert_validation
 
     def to_dict(self):
         vars = {"ansible_user": self._login }
-        if self._password:
-            vars["ansible_password"] = self._password
+        #if self._password:
+        vars["ansible_password"] = self._password
         # TODO write to file
         if self._sshkey:
             vars["ansible_sshkey"] = self._sshkey
+        vars["ansible_connection"] = self._con_type
         if self._con_type == "winrm":
-            vars["ansible_connection"] = self._con_type
             vars["ansible_winrm_server_cert_validation"] = self._winrm_server_cert_validation
         return vars
         
@@ -131,6 +131,7 @@ def clone_roles(playbooks: Iterable, directory: str, check_ssl: bool):
         for role in playbook.get_roles():
             if role not in roles:
                 roles.append(role)
+    clone_error = False
     for role in roles:
         #git.Repo.clone_from(role, '/tmp/roles/%s' % role)
         command = ["ansible-galaxy", "install", "-p", directory]
@@ -146,55 +147,74 @@ def clone_roles(playbooks: Iterable, directory: str, check_ssl: bool):
             logging.error("Unable to clone repo %s", role)
             logging.error("stdout: %s", process_error.stdout)
             logging.error("stderr: %s", process_error.stderr)
+            clone_error = True
+    if clone_error:
+        exit(1)
+
 
 def _get_ansible_attribute(module: dict, attribute: str, namespace: str, api_instance: CustomObjectsApi):
     """ Return an attribute value in an module or in its template """
+    def_value = {'defaultGalaxyServer' : '', 'credentials': { 'user': None, 'password': None, 'ssh_key': None}, 'vars': [], 'targets': [], 'roles': []}
     template = None
-    mod_value = {}
-    env_value = {}
-    template_value = {}
+    out = def_value[attribute]
     module_spec = module['spec']
     ansible_spec = module_spec[ANSIBLE_ATTRIBUTES]
     state_spec = api_instance.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'states')["items"][0]['spec']
-
-    if attribute in ansible_spec:
-        mod_value = ansible_spec[attribute]
-    if 'moduleTemplate' in module_spec:
-        template_name = module_spec['moduleTemplate']
-        template = api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'moduletemplates', template_name)
-    elif 'clusterModuleTemplate' in module_spec:
+    if 'clusterModuleTemplate' in module_spec:
         template_name = module_spec['clusterModuleTemplate']
-        template = api_instance.get_cluster_custom_object(API_GROUP, API_VERSION, 'clustermoduletemplates', template_name)
-    if template is not None:
-        template_spec = template['spec']
+        template_spec = api_instance.get_cluster_custom_object(API_GROUP, API_VERSION, 'clustermoduletemplates', template_name)["spec"]
+    elif 'moduleTemplate' in module_spec:
+        template_name = module_spec['moduleTemplate']
+        template_spec = api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'moduletemplates', template_name)["spec"]
+
+    if attribute != 'vars':
+        if ANSIBLE_ATTRIBUTES in module_spec and attribute in module_spec[ANSIBLE_ATTRIBUTES]:
+            out = module_spec[ANSIBLE_ATTRIBUTES][attribute]
+        else:
+            if template_spec != None and ANSIBLE_ATTRIBUTES in template_spec and attribute in template_spec[ANSIBLE_ATTRIBUTES]:
+                out = template_spec[ANSIBLE_ATTRIBUTES][attribute]
+            if 'environment' in state_spec:
+                env_name = state_spec['environment']
+                if "environments" in template_spec:
+                    for env in template_spec['environments']:
+                        if env['name'] == env_name and ANSIBLE_ATTRIBUTES in env and attribute in env[ANSIBLE_ATTRIBUTES]:
+                            out = env[ANSIBLE_ATTRIBUTES][attribute]
+    else:
+        out = []
+        if template_spec != None and ANSIBLE_ATTRIBUTES in template_spec and attribute in template_spec[ANSIBLE_ATTRIBUTES]:
+            for var in template_spec[ANSIBLE_ATTRIBUTES][attribute]:
+                out = upsert(var, out)
         if 'environment' in state_spec:
             env_name = state_spec['environment']
-            for env in template_spec['environments']:
-                if env['name'] == env_name and ANSIBLE_ATTRIBUTES in env:
-                    env_ans_attribute = env[ANSIBLE_ATTRIBUTES]
-                    if attribute in env_ans_attribute:
-                        env_value = env_ans_attribute[attribute]
-                    break
+            if "environments" in template_spec:
+                for env in template_spec['environments']:
+                    if env['name'] == env_name and ANSIBLE_ATTRIBUTES in env and attribute in env[ANSIBLE_ATTRIBUTES]:
+                        for var in  env[ANSIBLE_ATTRIBUTES][attribute]:
+                            out = upsert(var, out)
+        if attribute in module_spec[ANSIBLE_ATTRIBUTES]:
+            for var in module_spec[ANSIBLE_ATTRIBUTES][attribute]:
+                out = upsert(var, out)
 
-        if attribute in template_spec[ANSIBLE_ATTRIBUTES]:
-            template_value = template_spec[ANSIBLE_ATTRIBUTES][attribute]
+    return out
 
-    if attribute == 'vars':
-        template_value.extend(env_value)
-        template_value.extend(mod_value)
+
+def upsert(var, vars):
+    out = []
+    if len(vars) == 0:
+        out.append(var)
     else:
-        template_value = _concat_value(env_value, template_value)
-        template_value = _concat_value(mod_value, template_value)
-
-    return template_value
-
-def _concat_value(sup_value, template):
-    if type(sup_value) is str or type(sup_value) is list:
-        template = sup_value
-    else:
-        for key, value in sup_value.items():
-            template[key] = value
-    return template
+        for v in vars:
+            if v['name'] == var['name']:
+                out.append(var)
+            else:
+                out.append(v)
+    found = False
+    for v in out:
+        if var['name'] == v['name']:
+            found = True
+    if not found:
+        out.append(var)
+    return out
 
 def _parse_variables(vars_list):
     """Transform the list of vars stored in module definition in dictionnary"""
@@ -230,14 +250,7 @@ def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjects
             roles = _get_ansible_attribute(module, "roles", namespace, api_instance)
             targets = _get_ansible_attribute(module, "targets", namespace, api_instance)
 
-            creds = _get_ansible_attribute(module, "credentials", namespace, api_instance)
-            # TODO add sshkey and winrm
-
-            if creds is None:
-                credentials = None
-            else:
-                credentials = _parse_credentials(creds)
-
+            credentials = _parse_credentials(_get_ansible_attribute(module, "credentials", namespace, api_instance))
             variables = _get_ansible_attribute(module, "vars", namespace, api_instance)
             variables = _parse_variables(variables)
 
@@ -260,7 +273,6 @@ def parse_modules(modules: Iterable, namespace: str, api_instance: CustomObjects
                     creds = _parse_credentials(host['credentials'])
                     target.add_credentials(creds)
                 group.add_host(target)
-
             playbook = AnsiblePlaybook(group_name, group, roles, credentials, default_server)
             playbooks.append(playbook)
 

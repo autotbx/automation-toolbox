@@ -5,5 +5,5 @@ COPY deblist.txt /
 RUN bash apt-install.sh
 COPY requirements.txt /
 RUN pip install -r requirements.txt
-COPY ansible_wrapper.py /
-CMD ansible_wrapper.py
+COPY ansible_run.py /
+CMD ansible_run.py

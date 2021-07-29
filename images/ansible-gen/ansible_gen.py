@@ -300,15 +300,18 @@ def resolveDependencies(namespace, module):
 def main():
     """ Entrypoint  """
 
-    namespace = os.environ.get("K8S_NAMESPACE", "default")
+    namespace = os.environ.get("K8S_NAMESPACE")
     data_dir = os.environ.get("ANSIBLE_DATA_DIR", "/data")
     name = os.environ.get('ANSIBLE_PLAN')
     check_ssl = os.environ.get("CHECK_SSL", True)
     if check_ssl == "FALSE":
         check_ssl = False
+    if not namespace or not name:
+        print("You must set the namespace and name environment variable")
+        exit(1)
 
     try:
-        plan = api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansplans', name)
+        plan = api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', name)
     except ApiException as e:
         printError("Exception when  CustomObjectsApi->get_namespaced_custom_object: %s\n" % e)
         exit(1)

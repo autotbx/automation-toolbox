@@ -3,7 +3,12 @@
 {% block title %}{{pluralTitle}}{% endblock %}
 {% block nav %}
     {% if namespace %}
-        <a href="/{{ plural }}">{{pluralTitle}}</a> <span data-feather="chevron-right"></span> <a href="/{{ plural }}/{{namespace}}">{{namespace}} </a><span data-feather="chevron-right"></span> {{ name }}
+      {% if plural == "states" %}
+      	States <span data-feather="chevron-right"></span> {{ name }}
+
+      {% else %}
+        <a href="/{{ plural }}">{{pluralTitle}}</a> <span data-feather="chevron-right"></span> <a href="/{{ plural }}/{{namespace}}">{{namespace}}</a><span data-feather="chevron-right"></span> {{ name }}
+      {% endif %}
     {% else %}
       <a href="/cluster/{{ plural }}">{{pluralTitle}}</a> <span data-feather="chevron-right"></span>{{ name }}
     {% endif %}
@@ -60,7 +65,11 @@ $(document).ready(function() {
   });
   $(".actiondelete").click(function() {
     if (confirm('Arey you sure to delete {{plural}}/{{name}} ?')) {
-        location.href = '/{{plural}}/{{namespace}}/?delete=true&name={{name}}'
+        {% if namespace == None %}
+          location.href = '/cluster/{{plural}}/?delete=true&name={{name}}'
+        {% else %}
+          location.href = '/{{plural}}/{{namespace}}/?delete=true&name={{name}}'
+        {% endif %}
     }
     
   });

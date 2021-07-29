@@ -2,7 +2,7 @@
 {% block title %}{{objs}}{% endblock %}
 {% block nav %}
 
-{% if namespace %}
+{% if namespace and plural != "clustermoduletemplates" and plural != "clusterproviders" %}
 <a href="/{{ plural }}">{{pluralTitle}}</a> <span data-feather="chevron-right"></span> <a href="/{{ plural }}/{{namespace}}">{{namespace}} </a>
 {% else %}
 <a href="/cluster/{{ plural }}">{{pluralTitle}}</a>

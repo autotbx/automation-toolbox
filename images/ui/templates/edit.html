@@ -224,6 +224,13 @@ function getAnsibleAttributes(where) {
       ansibleAttributes["roles"] = roles;
     }
   }
+  var dependencies = getFormAttributes($(where).find('div.ansibleDependencies'));
+  if (dependencies.length != 0) {
+    dependencies = getFormAttributes($(where).find('div.ansibleDependencies'))[0]['lsValue'];
+    if (dependencies.length != 0) {
+      ansibleAttributes["dependencies"] = dependencies;
+    }
+  }
   var ansiblevars  = (where == 'form') ? getFormAttributes($(where).find('div.ansibleVars').filter(function() { return $(this).closest('div.env').length == 0; })) : getFormAttributes($(where).find('div.ansibleVars'));
   if (Object.keys(ansiblevars).length != 0) {
     ansibleAttributes["vars"] = ansiblevars;
@@ -400,8 +407,8 @@ function formatAttributes(attrtype="sValue", attrname="", attrvalue="", type="si
   }
   else if (type == "simple" || type == 'ansibleRoles' || type == "ansibleHosts" || type == "fillRequiredAttributes" ) {
     disabled = (type == "ansibleRoles" || type == "ansibleHosts" || type == 'fillRequiredAttributes') ? "disabled" : '';
-    attrname = (type == "ansibleRoles") ? "roles": attrname;
-    attrname = (type == "ansibleHosts") ? "fqdn": attrname;
+    //attrname = (type == "ansibleRoles") ? "roles": attrname;
+    //attrname = (type == "ansibleHosts") ? "fqdn": attrname;
     var required = (type == 'fillRequiredAttributes') ? 'required' : '';
     var attrcol  = (padding) ? 5 : 8;
     html += `
@@ -447,7 +454,7 @@ function genFields(fields) {
       var disabled = ("disabled" in field && field['disabled']) ? 'disabled' : '';
       var value = ("value" in field) ? field['value'] : '';
       var requiredLabel = ("required" in field && field['required']) ? '<strong>'+field['name']+' *</strong>' : field['name'];
-      if (field['type'] != "attributes" && field['type'] != 'requiredAttributes' && field['type'] != 'fillRequiredAttributes' && field['type'] != "ansibleRoles" && field['type'] != "ansibleHosts" && field['type'] != "environments") {
+      if (field['type'] != "attributes" && field['type'] != 'requiredAttributes' && field['type'] != 'fillRequiredAttributes' && field['type'] != "ansibleRoles" && field['type'] != "ansibleDependencies" && field['type'] != "ansibleHosts" && field['type'] != "environments") {
         html += '<div class="form-group row">';
         html += '<label class="col-sm-4 col-form-label">'+requiredLabel+'</label><div class="col-sm-6">'
       }
@@ -490,7 +497,7 @@ function genFields(fields) {
         case "environments": 
             switch(plural) {
               case "clustermoduletemplates":
-                var envtypes = [{"name": "Default Attributes", 'type': 'attributes', "id": "defaultAttributes"}, {"name": "Ansible Specification", 'type': '', "id": "ansibleSpec"}, {"name": "Ansible Roles", 'type': 'ansibleRoles', "id":"ansibleRoles"}, {"name": "Ansible Vars", "id": "ansibleVars", 'type': 'attributes'}];
+                var envtypes = [{"name": "Default Attributes", 'type': 'attributes', "id": "defaultAttributes"}, {"name": "Ansible Specification", 'type': '', "id": "ansibleSpec"}, {"name": "Ansible Roles", 'type': 'ansibleRoles', "id":"ansibleRoles"}, {"name": "Ansible Vars", "id": "ansibleVars", 'type': 'attributes'}, {"name": "Ansible Dependencies", 'type': 'ansibleDependencies', "id":"ansibleDependencies"}];
               break;
               case "clusterproviders":
                 var envtypes = [{"name": "Attributes", "id": "attributes", 'type': 'attributes'}];
@@ -549,6 +556,10 @@ function genFields(fields) {
                     var ansibleRoles = ("ansibleAttributes" in env && "roles" in env['ansibleAttributes']) ? env['ansibleAttributes']['roles'] : [];
                     html += genForm([{id : 'ansibleRoles', name: 'Ansible Roles' , 'hrclass': 'env', 'htype': 'h6', fields: [{'type': 'ansibleRoles', 'name': 'roles', 'value': ansibleRoles}]}]);
                   }
+                  else if (e['id'] == "ansibleDependencies") {
+                    var ansibleDependencies = ("ansibleAttributes" in env && "dependencies" in env['ansibleAttributes']) ? env['ansibleAttributes']['dependencies'] : [];
+                    html += genForm([{id : 'ansibleDependencies', name: 'Ansible Dependencies' , 'hrclass': 'env', 'htype': 'h6', fields: [{'type': 'ansibleDependencies', 'name': 'dependencies', 'value': ansibleDependencies}]}]);
+                  }
                   else {
                     if (e['id'] in env) {
                       html += genForm([{id : e['id'], name: e['name'] , 'hrclass': 'env', 'htype': 'h6', 'add': add, fields: [ {'name': e['name'], 'type': e['type'], 'value': env[e['id']]}]}]);
@@ -587,10 +598,11 @@ function genFields(fields) {
           });
           html += '</div>';
         break;
-        case "ansibleRoles": 
-          var name = (field['type'] == "ansibleRoles") ? 'roles' : 'fqdn';
+        case "ansibleRoles":
+        case "ansibleDependencies":
+          var name = (field['type'] == "ansibleRoles") ? 'roles' : 'module_names';
           html += '<div class="form-group row">';
-          html += formatAttributes("lsValue", name, "", field['type'], true );
+          html += formatAttributes("lsValue", name, "", "ansibleRoles", true );
           field['value'].forEach(function(element) {
             html += formatAttributes("lsValue",  "", element, "list", false, false, "", "delElementAttribute" );
           });
@@ -618,8 +630,6 @@ function genFields(fields) {
           });
         break
         case "attributes":
-          console.log('aaaa');
-          console.log(field);
           field['value'].forEach(function(element) {
             html += '<div class="form-group row">';
             var attrtype = getAttributeType(element);
@@ -633,7 +643,7 @@ function genFields(fields) {
           });
         break;
       }
-      if (field['type'] != "attributes" && field['type'] != 'requiredAttributes' && field['type'] != 'fillRequiredAttributes' && field['type'] != "ansibleRoles" && field['type'] != "ansibleHosts"  && field['type'] != "environments") {
+      if (field['type'] != "attributes" && field['type'] != 'requiredAttributes' && field['type'] != 'fillRequiredAttributes' && field['type'] != "ansibleRoles" && field['type'] != "ansibleDependencies" && field['type'] != "ansibleHosts"  && field['type'] != "environments") {
         html += "</div>";
         if ("del" in field || field['id'].includes('password')) {
           html += '<div class="col-sm-1 col-form-label attrbtn">';
@@ -758,14 +768,6 @@ function setinvalid(attr, invalid=true){
     }
     $('#submit').click();
   });
-
-  // TODO: HERE
-  // plan details
-  // env name can be empty at crd
-  // hide + icons on show tpl
-  // autoplanrequest sur templates...
-  // module ondelete, pas de planrequest
-  // SA on new ns
   
   $('body').on('focusin', '.attrtype', function(){
     $(this).data('val', $(this).val());
@@ -902,7 +904,7 @@ function setinvalid(attr, invalid=true){
   });
 
   $('body').on('click', '.delEnv', function() {
-    $(this).parent().parent().parent().remove();
+    $(this).parent().parent().parent().parent().remove();
   });
 
   $('body').on('click', '.addEnv', function() {

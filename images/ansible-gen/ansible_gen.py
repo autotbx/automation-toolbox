@@ -158,7 +158,7 @@ def clone_roles(playbooks: Iterable, directory: str, check_ssl: bool):
 def _get_ansible_attribute(module: dict, attribute: str, namespace: str):
     """ Return an attribute value in an module or in its template """
     def_value = {'defaultGalaxyServer' : '', 'credentials': { 'user': None, 'password': None, 'ssh_key': None}, 'vars': [], 'targets': [], 'roles': [], 'dependencies': []}
-    template = None
+    template_spec = None
     out = def_value[attribute]
     module_spec = module['spec']
     ansible_spec = module_spec[ANSIBLE_ATTRIBUTES]
@@ -178,7 +178,7 @@ def _get_ansible_attribute(module: dict, attribute: str, namespace: str):
                 out = template_spec[ANSIBLE_ATTRIBUTES][attribute]
             if 'environment' in state_spec:
                 env_name = state_spec['environment']
-                if "environments" in template_spec:
+                if template_spec != None and "environments" in template_spec:
                     for env in template_spec['environments']:
                         if env['name'] == env_name and ANSIBLE_ATTRIBUTES in env and attribute in env[ANSIBLE_ATTRIBUTES]:
                             out = env[ANSIBLE_ATTRIBUTES][attribute]
@@ -189,7 +189,7 @@ def _get_ansible_attribute(module: dict, attribute: str, namespace: str):
                 out = upsert(var, out)
         if 'environment' in state_spec:
             env_name = state_spec['environment']
-            if "environments" in template_spec:
+            if template_spec != None and "environments" in template_spec:
                 for env in template_spec['environments']:
                     if env['name'] == env_name and ANSIBLE_ATTRIBUTES in env and attribute in env[ANSIBLE_ATTRIBUTES]:
                         for var in  env[ANSIBLE_ATTRIBUTES][attribute]:

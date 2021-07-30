@@ -43,6 +43,8 @@ clusterplurals = ["clusterproviders", "clustermoduletemplates" ]
 plurals = [
   "plans",
   "planrequests",
+  "ansibleplans",
+  "ansibleplanrequests",
   "states",
   "providers",
   "moduletemplates",
@@ -187,6 +189,23 @@ def plansNamespaced(namespace):
   js = plansJs + planRequestsJs
   return render_template("plans.html",plural='plans', namespace=namespace, plansTable=plansTable, planRequestsTable=planRequestsTable, js=js, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
 
+@app.route('/ansibleplans/<namespace>')
+@app.route('/ansibleplans/<namespace>/')
+@login_required
+def ansplansNamespaced(namespace):
+  session["namespace"]=namespace
+  if request.args.get('approve') == "true" and request.args.get('name') != "":
+    try:
+      _k8s_custom.patch_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', name=request.args.get('name'), body={'spec': {'approved': True}})
+      flash(f'Plan {request.args.get("name")} successfully approved', 'success')
+    except ApiException as e:
+      flash(f'Error occured during approval {request.args.get("name")} : {e}', 'error')
+
+  plansTable, plansJs = utils.genTable(utils.apiMapping('plans'), 'plans', f'/api/plans/{namespace}/')
+  planRequestsTable, planRequestsJs =  utils.genTable(utils.apiMapping('planrequests'), 'planrequests', f'/api/planrequests/{namespace}/')
+  js = plansJs + planRequestsJs
+  return render_template("plans.html",plural='plans', namespace=namespace, plansTable=plansTable, planRequestsTable=planRequestsTable, js=js, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
+
 
 @app.route('/plans/<namespace>/<name>')
 @login_required
@@ -207,6 +226,27 @@ def plan(namespace, name):
     css = css + applyCSS
   
   return render_template("plan.html",plural='plans', namespace=namespace, plan=plan, css=css, planOutput=planOutput, applyOutput=applyOutput, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
+
+@app.route('/ansibleplans/<namespace>/<name>')
+@login_required
+def ansplan(namespace, name):
+  try:
+    plan = _k8s_custom.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', name)
+  except:
+    flash(f'Unable to find plan {name}', 'error')
+    return render_template("plan.html", namespace=namespace, plan=None, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
+  
+  planOutput, applyOutput, css = ("", "", "")
+  if 'planOutput' in plan['status'] and plan['status']['planOutput']  != "":
+    planOutput, planCSS = utils.ansi2html(plan['status']['planOutput'])
+    css  = planCSS + css
+  
+  if 'applyOutput' in plan['status'] and plan['status']['applyOutput']  != "":
+    applyOutput, applyCSS = utils.ansi2html(plan['status']['applyOutput'])
+    css = css + applyCSS
+  
+  return render_template("plan.html",plural='ansibleplans', namespace=namespace, plan=plan, css=css, planOutput=planOutput, applyOutput=applyOutput, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
+
 
 
 @app.route('/states/_new')
@@ -361,8 +401,16 @@ def apiPlural(plural):
   if plural not in clusterplurals and plural not in plurals:
     abort(404)
   out = []
+
   for item in _k8s_custom.list_cluster_custom_object(API_GROUP, API_VERSION, plural)["items"]:
     out.append(utils.formatKind(plural, item))
+  if plural == "plans":
+    for item in _k8s_custom.list_cluster_custom_object(API_GROUP, API_VERSION, "ansibleplans")["items"]:
+      out.append(utils.formatKind("ansibleplans", item))
+  if plural == "planrequests":
+    for item in _k8s_custom.list_cluster_custom_object(API_GROUP, API_VERSION, "ansibleplanrequests")["items"]:
+      out.append(utils.formatKind("ansibleplanrequests", item))
+
   return jsonify({'data': out})
 
 @app.route('/api/<plural>/<namespace>')
@@ -374,6 +422,13 @@ def apiPluralNamespaced(plural, namespace):
   out = []
   for item in _k8s_custom.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, plural)["items"]:
     out.append(utils.formatKind(plural, item))
+  if plural == "plans":
+    for item in _k8s_custom.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, "ansibleplans")["items"]:
+      out.append(utils.formatKind("ansibleplans", item))
+  if plural == "planrequests":
+    for item in _k8s_custom.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, "ansibleplanrequests")["items"]:
+      out.append(utils.formatKind("ansibleplanrequests", item))
+
   return jsonify({'data': out})
 
 
@@ -411,7 +466,7 @@ def apiHeritedModAttributes(namespace, name):
     abort(404)
   r = []
   for sec in utils.updateFieldsValues(utils.getForm('moduletemplates'), 'moduletemplates', item):
-    if sec['id'] in ['defaultAttributes', 'ansibleSpec', 'ansibleRoles', 'ansibleVars']:
+    if sec['id'] in ['defaultAttributes', 'ansibleSpec', 'ansibleRoles', 'ansibleVars', "ansibleDependencies"]:
       r.append(sec) 
   return jsonify(r)
 
@@ -499,7 +554,7 @@ def apiClusterHeritedModAttributes(namespace, name):
     abort(404)
   r = []
   for sec in utils.updateFieldsValues(utils.getForm('clustermoduletemplates'), 'clustermoduletemplates', item):
-    if sec['id'] in ['defaultAttributes', 'ansibleSpec', 'ansibleRoles', 'ansibleVars']:
+    if sec['id'] in ['defaultAttributes', 'ansibleSpec', 'ansibleRoles', 'ansibleVars', "ansibleDependencies"]:
       r.append(sec)
   if "environment" in stateenv['spec'] and "environments" in item['spec']:
     for env in item['spec']['environments']:
@@ -512,6 +567,8 @@ def apiClusterHeritedModAttributes(namespace, name):
             r = updateAttribute(r, "ansibleVars", "ansibleVars", envattr)
         if "ansibleAttributes" in env and "roles" in env["ansibleAttributes"]:
           r = updateAttribute(r, "ansibleRoles", "ansibleRoles", env["ansibleAttributes"]['roles'])
+        if "ansibleAttributes" in env and "dependencies" in env["ansibleAttributes"]:
+          r = updateAttribute(r, "ansibleDependencies", "ansibleDependencies", env["ansibleAttributes"]['dependencies'])
         if "ansibleAttributes" in env and "defaultGalaxyServer" in env["ansibleAttributes"]:
           r = updateAttribute(r, "ansibleSpec", "ansible_defaultGalaxyServer", env["ansibleAttributes"]["defaultGalaxyServer"])
         if "ansibleAttributes" in env and "credentials" in env["ansibleAttributes"]:
@@ -519,17 +576,6 @@ def apiClusterHeritedModAttributes(namespace, name):
           r = updateAttribute(r, "ansibleSpec", "ansible_cred_password", env["ansibleAttributes"]["credentials"]['password'])
           r = updateAttribute(r, "ansibleSpec", "ansible_cred_ssh_key", env["ansibleAttributes"]["credentials"]['ssh_key'])
           r = updateAttribute(r, "ansibleSpec", "ansible_cred_type", env["ansibleAttributes"]["credentials"]['type'])
-  return jsonify(r)
-  #TODO env
-
-  r = item['spec']["defaultAttributes"] if "defaultAttributes" in item['spec'] else []
-  if "environment" in stateenv['spec'] and "environments" in item['spec']:
-    for env in item['spec']['environments']:
-      if env['name'] == stateenv['spec']['environment']:
-        for envattr in env['defaultAttributes']:
-          print(envattr)
-          print('======')
-          r = addAttribute(r, envattr)
   return jsonify(r)
 
 @app.route('/api/clustermoduletemplates/<name>/attributes')

@@ -17,6 +17,8 @@ _k8s_core = kubernetes.client.CoreV1Api()
 plurals = [
   "plans",
   "planrequests",
+  "ansibleplans",
+  "ansibleplanrequests",
   "states",
   "providers",
   "clusterproviders",
@@ -35,7 +37,7 @@ def getNamespace():
 def formatKind(kind, obj):
   name = obj["metadata"]["name"]
   namespace = obj["metadata"]["namespace"] if "namespace" in obj["metadata"] else None
-  edit = '/edit' if kind not in ['plans', 'planrequests'] else ""
+  edit = '/edit' if kind not in ['plans', 'planrequests', 'ansibleplans', 'ansibleplanrequests'] else ""
   link = f'<a href="/{kind}/{namespace}/{name}{edit}">{name}</a>' if namespace != None else f'<a href="/cluster/{kind}/{name}{edit}">{name}</a>'
   if namespace:
     nslink = f'<a href="/{kind}/{namespace}/">{namespace}</a>'
@@ -52,9 +54,10 @@ def formatKind(kind, obj):
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
       'namespace' :  nslink
     }
-  elif kind == "plans":
+  elif kind == "plans" or kind == "ansibleplans":
     return {
       'name' : link,
+      'type' : 'terraform' if kind == "plans" else "ansible",
       'approved': obj["spec"]["approved"],
       'applyStatus' : obj["status"]['applyStatus'],
       'applyStartTime': obj["status"]['applyStartTime'],
@@ -62,13 +65,16 @@ def formatKind(kind, obj):
       'planStatus' : obj["status"]['planStatus'],
       'planStartTime': obj["status"]['planStartTime'],
       'planCompleteTime': obj["status"]['planCompleteTime'],
+      'targets': ','.join(obj["spec"]["targets"]) if "targets" in obj['spec'] else '',
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
       'namespace' :  nslink
     }
-  elif kind == "planrequests":
+  elif kind == "planrequests" or kind == "ansibleplanrequests":
     out = {
       'name' : link,
+      'type' : 'terraform' if kind == "planrequests" else "ansible",
       'deletePlanOnDeleted': obj["spec"]["deletePlanOnDeleted"],
+      'targets': ','.join(obj["spec"]["targets"]) if "targets" in obj['spec'] else '',
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
       'namespace' :  nslink
     }
@@ -133,6 +139,8 @@ def formatApiKind(name):
   m = {
     "plans": "Plan",
     "planrequests" : "PlanRequest",
+    "ansibleplans": "AnsiblePlan",
+    "ansibleplanrequests": "AnsiblePlanRequest",
     "states" : "State",
     "providers" : "Provider",
     "clusterproviders" : "ClusterProvider",
@@ -400,7 +408,18 @@ def getForm(plural):
             "value" : [],
           }
         ]
-      }
+      },
+      {
+        "id": "ansibleDependencies",
+        "name": "Ansible Dependencies",
+        "fields": [
+          {
+            "type": "ansibleDependencies",
+            "id": "ansibleDependencies",
+            "value" : [],
+          }
+        ]
+      },
     ],
     "clustermoduletemplates": [
       {
@@ -491,6 +510,17 @@ def getForm(plural):
           {
             "type": "attributes",
             "id": "ansibleVars",
+            "value" : [],
+          }
+        ]
+      },
+      {
+        "id": "ansibleDependencies",
+        "name": "Ansible Dependencies",
+        "fields": [
+          {
+            "type": "ansibleDependencies",
+            "id": "ansibleDependencies",
             "value" : [],
           }
         ]
@@ -601,6 +631,17 @@ def getForm(plural):
           }
         ]
       },
+      {
+        "id": "ansibleDependencies",
+        "name": "Ansible Dependencies",
+        "fields": [
+          {
+            "type": "ansibleDependencies",
+            "id": "ansibleDependencies",
+            "value" : [],
+          }
+        ]
+      },
     ],
     "states" : [
     {
@@ -679,17 +720,41 @@ def getForm(plural):
         "type": "list",
         "name": "TF Generator Image Pull Policy",
         "options": ["Always", "Never", "IfNotPresent"],
+        },
+        {
+        "id": "ansibleExecutorImage",
+        "type": "string",
+        "name": "Ansible Executor Image",
+        },
+        {
+        "id": "ansibleExecutorImagePullPolicy",
+        "type": "list",
+        "name": "Ansible Executor Image Pull Policy",
+        "options": ["Always", "Never", "IfNotPresent"],
+        },
+        {
+        "id": "ansibleGeneratorImage",
+        "type": "string",
+        "name": "Ansible Generator Image",
+        },
+        {
+        "id": "ansibleGeneratorImagePullPolicy",
+        "type": "list",
+        "name": "Ansible Generator Image Pull Policy",
+        "options": ["Always", "Never", "IfNotPresent"],
         }
       ]
     }
     ]
     }
+    form['ansibleplanrequests'] = form['planrequests']
+    #form['ans'] = form['planrequests']
     #form['clusterproviders'] = form['providers']
     #form['clustermoduletemplates'] = form['moduletemplates']
     return form[plural]
 
 def updateFieldsValues(form, plural, obj):
-  if plural == "planrequests":
+  if plural == "planrequests" or plural == "ansibleplanrequests":
     form = updateFieldsValue(form, "spec", "name", "value", obj['metadata']['name'])
     form = updateFieldsValue(form, "spec", "name", "disabled", True)
     form = updateFieldsValue(form, "spec", "deletePlanOnDeleted", "value", obj['spec']['deletePlanOnDeleted'])
@@ -705,6 +770,10 @@ def updateFieldsValues(form, plural, obj):
     form = updateFieldsValue(form, "spec", "tfExecutorImagePullPolicy", "value", obj['spec']['tfExecutorImagePullPolicy'])
     form = updateFieldsValue(form, "spec", "tfGeneratorImage", "value", obj['spec']['tfGeneratorImage'])
     form = updateFieldsValue(form, "spec", "tfGeneratorImagePullPolicy", "value", obj['spec']['tfGeneratorImagePullPolicy'])
+    form = updateFieldsValue(form, "spec", "ansibleExecutorImage", "value", obj['spec']['ansibleExecutorImage'])
+    form = updateFieldsValue(form, "spec", "ansibleExecutorImagePullPolicy", "value", obj['spec']['ansibleExecutorImagePullPolicy'])
+    form = updateFieldsValue(form, "spec", "ansibleGeneratorImage", "value", obj['spec']['ansibleGeneratorImage'])
+    form = updateFieldsValue(form, "spec", "ansibleGeneratorImagePullPolicy", "value", obj['spec']['ansibleGeneratorImagePullPolicy'])
     form = updateFieldsValue(form, "spec", "clusterProviders", "values", obj['spec']['clusterProviders'] if "clusterProviders" in obj["spec"] else [])
     form = updateFieldsValue(form, "spec", "environment", "value", obj['spec']['environment'] if 'environment' in obj["spec"] else [])
   elif plural == "providers" or plural == "clusterproviders":
@@ -727,6 +796,7 @@ def updateFieldsValues(form, plural, obj):
         form = updateFieldsValue(form, "ansibleSpec", "ansible_cred_ssh_key", "value", obj['spec']['ansibleAttributes']['credentials']['ssh_key'] if "ssh_key" in obj['spec']['ansibleAttributes']["credentials"] else '')
       form = updateFieldsValue(form, "ansibleSpec", "ansible_defaultGalaxyServer", "value", obj['spec']['ansibleAttributes']['defaultGalaxyServer'] if "defaultGalaxyServer" in obj['spec']['ansibleAttributes'] else '')
       form = updateFieldsValue(form, "ansibleRoles", "ansibleRoles", "value", obj['spec']['ansibleAttributes']['roles'] if "roles" in obj['spec']['ansibleAttributes'] else [])
+      form = updateFieldsValue(form, "ansibleDependencies", "ansibleDependencies", "value", obj['spec']['ansibleAttributes']['dependencies'] if "dependencies" in obj['spec']['ansibleAttributes'] else [])
       form = updateFieldsValue(form, "ansibleVars", "ansibleVars", "value", obj['spec']['ansibleAttributes']['vars'] if "vars" in obj['spec']['ansibleAttributes'] else [])
     attrs = []
     if 'requiredAttributes' in obj['spec']:
@@ -771,6 +841,7 @@ def updateFieldsValues(form, plural, obj):
         form = updateFieldsValue(form, "ansibleSpec", "ansible_cred_ssh_key", "value", obj['spec']['ansibleAttributes']['credentials']['ssh_key'] if "ssh_key" in obj['spec']['ansibleAttributes']["credentials"] else '')
       form = updateFieldsValue(form, "ansibleSpec", "ansible_defaultGalaxyServer", "value", obj['spec']['ansibleAttributes']['defaultGalaxyServer'] if "defaultGalaxyServer" in obj['spec']['ansibleAttributes'] else '')
       form = updateFieldsValue(form, "ansibleRoles", "ansibleRoles", "value", obj['spec']['ansibleAttributes']['roles'] if "roles" in obj['spec']['ansibleAttributes'] else [])
+      form = updateFieldsValue(form, "ansibleDependencies", "ansibleDependencies", "value", obj['spec']['ansibleAttributes']['dependencies'] if "dependencies" in obj['spec']['ansibleAttributes'] else [])
       form = updateFieldsValue(form, "ansibleVars", "ansibleVars", "value", obj['spec']['ansibleAttributes']['vars'] if "vars" in obj['spec']['ansibleAttributes'] else [])
       form = updateFieldsValue(form, "ansibleHosts", "ansibleHosts", "value", obj['spec']['ansibleAttributes']['targets'] if "targets" in obj['spec']['ansibleAttributes'] else [])
   return form
@@ -813,9 +884,10 @@ def apiMapping(kind):
         { "name" : "Environment", "field" : "environment"},
         { "name" : "CreationTime", "field": "creationTimestamp"},
     ]
-  elif kind == "plans":
+  elif kind == "plans" or kind == "ansibleplans":
     return [
       { "name" : "Name", "field": "name"},
+      { "name" : "Type", "field": "type"},
       { "name" : "Approved", "field": "approved"},
       { "name" : "Plan", "field": "planStatus"},
       { "name" : "Plan Start", "field": "planStartTime"},
@@ -823,13 +895,16 @@ def apiMapping(kind):
       { "name" : "Apply", "field": "applyStatus"},
       { "name" : "Apply Start", "field": "applyStartTime"},
       { "name" : "Apply End", "field": "applyCompleteTime"},
+      { "name" : "Targets", "field": "targets"},
       { "name" : "CreationTime", "field": "creationTimestamp"},
     ]
-  elif kind == "planrequests":
+  elif kind == "planrequests" or kind == "ansibleplanrequests":
     return [
       { "name" : "Name", "field": "name"},
+      { "name" : "Type", "field": "type"},
       { "name" : "Plans", "field": "plans"},
       { "name" : "deletePlanOnDeleted", "field": "deletePlanOnDeleted"},
+      { "name" : "Targets", "field": "targets"},
       { "name" : "CreationTime", "field": "creationTimestamp"},
     ]
   elif kind == "providers" or kind == "clusterproviders":
@@ -872,7 +947,7 @@ def genTable(mapping, name, ajax,):
       sortindex = i
     ths+= f'<th>{k["name"]}</th>'
     i = i + 1
-  table = f'<table id="{name}" class="table" style="width:100%"><thead><tr>{ths}</tr></thead><tfoot><tr>{ths}</tr></tfoot></table>'
+  table = f'<table id="{name}" class="table" style="width:100%"><thead><tr>{ths}</tr></thead></table>'
 
   js = """
     var data;

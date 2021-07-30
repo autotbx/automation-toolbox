@@ -69,7 +69,7 @@ def createJob(namespace, name, jobtype, action, obj):
     init_container_image = obj.spec["tfGeneratorImage"]
     container_image_policy = obj.spec["tfExecutorImagePullPolicy"]
     init_container_image_policy = obj.spec["tfGeneratorImagePullPolicy"]
-    target_env = ' '.join([ f'-target={x}' for x in obj['spec']['targets']]) if 'targets' in obj['spec'] else ''
+    target_env = ' '.join([ f'-target=module.{x}' for x in obj['spec']['targets']]) if 'targets' in obj['spec'] else ''
     env_tf_target = client.V1EnvVar(name="TF_TARGET", value=target_env)
     env_tf_state = client.V1EnvVar(name="STATE", value=obj.spec['state'])
     env_tf_secret = client.V1EnvVar(name="K8S_SECRET", value=f"tf-plan-{name}")
@@ -79,14 +79,14 @@ def createJob(namespace, name, jobtype, action, obj):
     env = [env_tf_ns, env_tf_path, env_tf_secret, env_tf_target, env_tf_state]
     vols_mount = [client.V1VolumeMount(name="tf", mount_path="/tf")]
     vols = [client.V1Volume(name="tf", empty_dir={})]
+    init_run_args = ["python /tfgen.py"]
     if action == "destroy":
       tf_args = ["echo DESTROYYY"]
     elif action == "apply":
      # tf_args = ["env; kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; cd /tf; terraform init; terraform show /tmp/plan;"]
-      run_args = ["kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; cd /tf; terraform init; terraform apply /tmp/plan;"]
+      run_args = ["kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; mkdir /tmp/empty; cd /tf; terraform init; terraform apply /tmp/plan;"]
     elif action == "plan":
-      run_args = ["cd /tf;  terraform init && terraform plan $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
-      init_run_args = ["python /tfgen.py"]
+      run_args = ["mkdir /tmp/empty; cd /tf;  terraform init && terraform plan $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
   elif jobtype == "ansible":
     container_name = "ansible"
     init_container_name = "ansible-gen"
@@ -184,7 +184,7 @@ def autoPlan(body, name, namespace, logger, **kwargs):
         'spec': { "deletePlanOnDeleted": True}
     }
     if body['kind'] == 'Module':
-      requestPlan['spec']['targets'] = [f'module.{name}']
+      requestPlan['spec']['targets'] = [name]
   
     try:
       response = custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'planrequests', requestPlan)
@@ -192,12 +192,19 @@ def autoPlan(body, name, namespace, logger, **kwargs):
     except ApiException as e:
       logger.error("Exception when calling CustomObjectsApi->create_namespaced_custom_object: %s\n" % e)
 
-def create_plan(logger, kind, stateName, namespace, planRequest, originalPlan=None, originalPlanRequest=None, targets=None):
+def get_state(namespace):
   try:
-    state = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'states', stateName)
+    state = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'states', namespace)
   except ApiException as e:
-    logger.error(f"Cannot get state {stateName} in namespace {namespace}, skipping create plan")
+    state = None
+  return state
+
+def create_plan(logger, kind, stateName, namespace, planRequest, originalPlan=None, originalPlanRequest=None, targets=None):
+  state = get_state(namespace)
+  if state == None:
+    logger.error(f"Cannot get state in namespace {namespace}, skipping create plan")
     return
+
   plural = 'plans' if kind == 'PlanRequest' else 'ansibleplans'
   originalPlanRequest = originalPlanRequest if originalPlanRequest != None else planRequest
   annotations = {'planRequest': originalPlanRequest}
@@ -211,7 +218,7 @@ def create_plan(logger, kind, stateName, namespace, planRequest, originalPlan=No
       }
   }
   if kind == 'PlanRequest':
-    body['spec']["deletePlansOnDeleted"]: state["spec"]['deletePlansOnPlanDeleted']
+    body['spec']["deletePlansOnDeleted"] = state["spec"]['deletePlansOnPlanDeleted']
     body['spec']["state"] = state["metadata"]["name"]
     body['spec']["tfGeneratorImage"] = state["spec"]["tfGeneratorImage"]
     body['spec']["tfGeneratorImagePullPolicy"] = state["spec"]["tfGeneratorImagePullPolicy"]
@@ -261,24 +268,28 @@ def planStatus(diff, status, namespace, logger, body, **kwargs):
     updateCustomStatus(logger, plural, namespace, body.metadata.name, {'planOutput' : log})
     if body.spec['approved']:
         logger.info(f"{body['kind']} {body.metadata['name']} completed and approved, request scheduling")
-        job(logger, body.metadata["name"], namespace, body, 'terraform', 'apply')
+        job(logger, body.metadata["name"], namespace, body, 'terraform' if body['kind'] == "Plan" else "ansible", 'apply')
     else:
       if body["kind"] == "Plan":
-        if "originalPlan" in body.spec and body.spec['originalPlan'] != "":
-          logger.info(f"originalPlan detected for {body.metadata['name']}: {body.spec['originalPlan']}")
-          lastOutput = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', body.spec['originalPlan'])['status']['planOutput']
-          planLast = re.search(f'.*{TERRAFORM_DELIMETER}(.*){TERRAFORM_DELIMETER}.*', lastOutput, flags=re.DOTALL)
-          planNew = re.search(f'.*{TERRAFORM_DELIMETER}(.*){TERRAFORM_DELIMETER}.*', log, flags=re.DOTALL)
-          if planLast == None or planNew == None:
-              logger.error(f"Unable to parse terraform plan output, skipping autoApproving")
-              return
-          if planLast.group(1) != planNew.group(1):
-            logger.error(f"Difference detected between originalPLan {body.spec['originalPlan']} and new plan {body.metadata.name}, manual Approval required")
-          else:
-            logger.info(f"No difference detected between originalPLan {body.spec['originalPlan']} and new plan {body.metadata.name}, autoApproving new plan")
-            custom_api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', body.metadata.name, {'spec': {'approved': True}})
+        if "No changes. Infrastructure is up-to-date." in log:
+          logger.info(f"Plan {body.metadata.name} produces an up-to-date plan, autoApproving")
+          custom_api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', body.metadata.name, {'spec': {'approved': True}})
         else:
-          logger.info(f"Plan {body.metadata['name']} completed but not approved, waiting approval")
+          if "originalPlan" in body.spec and body.spec['originalPlan'] != "":
+            logger.info(f"originalPlan detected for {body.metadata['name']}: {body.spec['originalPlan']}")
+            lastOutput = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', body.spec['originalPlan'])['status']['planOutput']
+            planLast = re.search(f'.*{TERRAFORM_DELIMETER}(.*){TERRAFORM_DELIMETER}.*', lastOutput, flags=re.DOTALL)
+            planNew = re.search(f'.*{TERRAFORM_DELIMETER}(.*){TERRAFORM_DELIMETER}.*', log, flags=re.DOTALL)
+            if planLast == None or planNew == None:
+                logger.error(f"Unable to parse terraform plan output, skipping autoApproving")
+                return
+            if planLast.group(1) != planNew.group(1):
+              logger.error(f"Difference detected between originalPLan {body.spec['originalPlan']} and new plan {body.metadata.name}, manual Approval required")
+            else:
+              logger.info(f"No difference detected between originalPLan {body.spec['originalPlan']} and new plan {body.metadata.name}, autoApproving new plan")
+              custom_api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', body.metadata.name, {'spec': {'approved': True}})
+          else:
+            logger.info(f"Plan {body.metadata['name']} completed but not approved, waiting approval")
 
   if diff[0][2] != "Failed" and diff[0][3] == "Failed":
     logger.error (f"{body['kind']} {body.metadata['name']} planning failed")
@@ -304,6 +315,41 @@ def applyStatus(diff, status, namespace, logger, body, **kwargs):
     logger.info(f'{body["kind"]} {body.metadata["name"]} applying completed')
     log = get_pod_log(logger, namespace, body.status['applyJob'])
     updateCustomStatus(logger ,plural, namespace, body.metadata.name, {'applyOutput' : log})
+    if body['kind'] == "Plan":
+      module_names = []
+      for target in body["spec"]["targets"] if "targets" in body['spec'] else []:
+        module_name = target
+        try:
+          module = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'modules', module_name)
+        except ApiException:
+          logger.error(f'Unable to find module {module_name}, skipping this module for ansibleplan')
+          continue
+        if "ansibleAttributes" in module["spec"] and "targets" in module["spec"]["ansibleAttributes"] and len(module["spec"]["ansibleAttributes"]["targets"]) != 0:
+          module_names.append(module_name)
+        else:
+          logger.info(f'No targets defined in module {module_name}, skipping this module for ansibleplan')
+      if len(module_names) != 0 or not "targets" in body["spec"]:
+        state = get_state(namespace)
+        if state == None:
+          logger.error(f"Cannot get state in namespace {namespace}, skipping create AnsiblePlan")
+          return
+        approved = True if len(module_names) != 0 else state['spec']['autoPlanApprove']
+        plan_body = {
+          'apiVersion': f'{API_GROUP}/{API_VERSION}',
+          'kind': 'AnsiblePlan',
+          'metadata' : client.V1ObjectMeta(generate_name=f'{body.metadata.name}-', namespace=namespace),
+          'spec': {
+            "approved": approved,
+            'ansibleGeneratorImage': state['spec']['ansibleGeneratorImage'],
+            'ansibleExecutorImage': state['spec']['ansibleExecutorImage'],
+            'ansibleGeneratorImagePullPolicy': state['spec']['ansibleGeneratorImagePullPolicy'],
+            'ansibleExecutorImagePullPolicy': state['spec']['ansibleExecutorImagePullPolicy']
+          }
+        }
+        if len(module_names) != 0:
+          plan_body['spec']['targets'] = module_names
+        logger.info(f'Creating AnsiblePlans')
+        api_response = custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', plan_body)
 
   if diff[0][2] != "Failed" and diff[0][3] == "Failed":
     logger.error(f'Plan {body.metadata["name"]} applying failed')
@@ -370,13 +416,13 @@ def jobSucceeded(diff, status, namespace, logger, body, **kwargs):
     return
   if diff[0][2] != True and diff[0][3] == True:
     end = body.status['completionTime']
-    plural = 'plans' if body['kind'] == "Plan" else "ansibleplans"
+    plural = 'plans'  if body["metadata"]['labels']["app"] == "terraform" else "ansibleplans"
     tftype =  'apply' if body["metadata"]["annotations"]["type"] == "apply" else 'plan'
     status = {f'{tftype}StartTime': body.status['startTime'], f'{tftype}Status' : 'Completed', f'{tftype}CompleteTime' : end}
     plan_name = body.metadata.annotations['planName']
     updateCustomStatus(logger, plural, namespace, plan_name, status)
     
-    #if body['kind'] == 'Plan' and tftype == "apply":
+
     #  # TODO: targets not mandatory ?
     #  #TODO ansible call
     #  plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', plan_name)
@@ -426,7 +472,7 @@ def jobActive(diff, status, namespace, logger, body, **kwargs):
 def jobCondition(diff, status, namespace, logger, body, **kwargs):
   if diff == ():
     return
-  tftype =  'apply' if body["metadata"]["annotations"]["type"] == "apply" else 'plan'
+  tftype = 'apply' if body["metadata"]["annotations"]["type"] == "apply" else 'plan'
   plural = 'plans' if body["metadata"]['labels']["app"] == "terraform" else "ansibleplans"
   status = {f'{tftype}Conditions': body.status['conditions']}
   updateCustomStatus(logger, plural, namespace, body.metadata.annotations['planName'], status)

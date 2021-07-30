@@ -887,6 +887,10 @@ spec:
         name: plans
         type: string
         description: Associated plans
+      - jsonPath: .spec.targets
+        name: targets
+        type: string
+        description: Targets
       - jsonPath: .metadata.creationTimestamp
         name: age
         type: date
@@ -935,7 +939,7 @@ spec:
       - jsonPath: .spec.autoPlanApprove
         name: autoPlanApprove
         type: string
-        description: autoPlanRequest
+        description: autoPlanApprove
       - jsonPath: .spec.autoPlanRequest
         name: autoPlanRequest
         type: string
@@ -991,7 +995,7 @@ spec:
                   type: boolean
                 tfGeneratorImage:
                   type: string
-                  default: harbor.pks.lab.platform-essential.com/library/tfgen:latest
+                  default: harbor.pks.lab.platform-essential.com/library/terraform-gen:latest
                 tfExecutorImage:
                   type: string
                   default: harbor.pks.lab.platform-essential.com/library/terraform:latest
@@ -1080,6 +1084,10 @@ spec:
         description: Apply Complete Time
         name: applyCompleteTime
         type: string 
+      - jsonPath: .spec.targets
+        name: targets
+        type: string
+        description: Targets
       - jsonPath: .metadata.creationTimestamp
         name: age
         type: date
@@ -1112,7 +1120,7 @@ spec:
                   type: boolean
                 tfGeneratorImage:
                   type: string
-                  default: harbor.pks.lab.platform-essential.com/library/tfgen:latest
+                  default: harbor.pks.lab.platform-essential.com/library/terraform-gen:latest
                 tfExecutorImage:
                   type: string
                   default: harbor.pks.lab.platform-essential.com/library/terraform:latest
@@ -1251,7 +1259,11 @@ spec:
       - jsonPath: .status.applyCompleteTime
         description: Apply Complete Time
         name: applyCompleteTime
-        type: string 
+        type: string
+      - jsonPath: .spec.targets
+        name: targets
+        description: Targets
+        type: string
       - jsonPath: .metadata.creationTimestamp
         name: age
         type: date
@@ -1392,6 +1404,10 @@ spec:
         name: plans
         type: string
         description: Associated plans
+      - jsonPath: .spec.targets
+        name: targets
+        type: string
+        description: Targets
       - jsonPath: .metadata.creationTimestamp
         name: age
         type: date

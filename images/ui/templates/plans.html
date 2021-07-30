@@ -9,7 +9,8 @@
 {% block obj %}Plans Summary{% endblock %}
 {% block actions %}
 {% if  namespace %}
-<button type="button" class="btn btn-success actionrequest">Request Plan</button>
+<button type="button" class="btn btn-success actionrequest">Request Terraform Plan</button> 
+<button type="button" class="btn btn-success actionansrequest">Request Ansible Plan</button>
 {% endif %}
 {% endblock %}
 {% block content %}
@@ -28,6 +29,10 @@ $(document).ready(function() {
   $(".actionrequest").click(function() {
     location.href = '/planrequests/{{namespace}}/_new'
   });
+  $(".actionansrequest").click(function() {
+    location.href = '/ansibleplanrequests/{{namespace}}/_new'
+  });
+  
 } );
 
 </script>

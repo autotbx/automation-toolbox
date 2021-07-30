@@ -155,6 +155,7 @@ foutputs = {}
 for module in modules:
   tpl = None
   moduleName = module['metadata']['name']
+  attributes = {}
   #clusterModuleTemplate prioity
   if 'clusterModuleTemplate' in module['spec']:
     try:
@@ -183,10 +184,13 @@ for module in modules:
       #overwrite tpl attribute if defined in module
       attributes[attribute] = modAttributes[attribute]
   else:
-    attributes = module['spec']['attributes']
+    attributes = formatAttr(parseAttr(module['spec']['attributes']))
   if "outputs" in module["spec"]:
     foutputs[moduleName] = module["spec"]["outputs"]
 
+  if not "source" in attributes:
+    os.mkdir('/tmp/empty')
+    attributes["source"] = '"/tmp/empty"'
   fmodules[moduleName] = attributes
 
 if len(errors) != 0:

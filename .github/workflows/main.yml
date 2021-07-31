@@ -22,7 +22,7 @@ jobs:
           if [[ $GITHUB_REF == 'refs/tags/*' ]]; then
             TAGS=${GITHUB_REF/refs\/tags\//}
           else
-            TAGS = "latest"
+            TAGS="latest"
            echo '::set-output name=tags::'$TAGS
           fi
       - name: Terraform - Build and push

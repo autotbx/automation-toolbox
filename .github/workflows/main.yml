@@ -7,11 +7,11 @@ on:
   create:
 jobs:
   build:
-    #if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: aze
-        run: ls -l $GITHUB_WORKSPACE
-      - name: env
-        run: env
+      - name: set tag
+        run: tag=${GITHUB_REF/refs\/tags\//}
+      - name: print tag
+        run: echo $tag

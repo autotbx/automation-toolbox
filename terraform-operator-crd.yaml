@@ -974,7 +974,6 @@ spec:
               - autoPlanApprove
               - autoPlanRequest
               - deleteJobsOnPlanDeleted
-              - deletePlansOnPlanDeleted
               type: object
               properties:
                 customTerraformInit:
@@ -985,13 +984,14 @@ spec:
                     type: string
                 environment:
                   type: string
+                trustedCA:
+                  type: string
+                  default: ""
                 autoPlanApprove:
                   type: boolean
                 autoPlanRequest:
                   type: boolean
                 deleteJobsOnPlanDeleted:
-                  type: boolean
-                deletePlansOnPlanDeleted:
                   type: boolean
                 tfGeneratorImage:
                   type: string
@@ -1101,7 +1101,6 @@ spec:
               required:
               - approved
               - deleteJobsOnDeleted
-              - deletePlansOnDeleted
               - state
               type: object
               properties:
@@ -1115,8 +1114,6 @@ spec:
                 state:
                   type: string
                 deleteJobsOnDeleted:
-                  type: boolean
-                deletePlansOnDeleted:
                   type: boolean
                 tfGeneratorImage:
                   type: string
@@ -1420,13 +1417,13 @@ spec:
             spec:
               type: object
               properties:
-                deletePlanOnDeleted:
-                  type: boolean
-                  default: false
                 targets:
                   type: array
                   items:
                     type: string
+                deletePlanOnDeleted:
+                  type: boolean
+                  default: false
             status:
               type: object
               properties:

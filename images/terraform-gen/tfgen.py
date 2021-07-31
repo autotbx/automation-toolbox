@@ -165,9 +165,9 @@ for module in modules:
       continue
   elif 'moduleTemplate' in module['spec']:
     try:
-      tpl = api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, 'moduletemplates', module['metadata']['namespace'], module['spec']['clusterModuleTemplate'])
+      tpl = api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, module['metadata']['namespace'], 'moduletemplates', module['spec']['moduleTemplate'])
     except ApiException as e:
-      errors.append(f"[MODULESKIP] {moduleName}: Exception when calling CustomObjectsApi->get_cluster_custom_object: %s" % e)
+      errors.append(f"[MODULESKIP2] {moduleName}: Exception when calling CustomObjectsApi->get_cluster_custom_object: %s" % e)
       continue
   if tpl != None:
     if 'requiredAttributes' in tpl['spec']:

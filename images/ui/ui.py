@@ -17,6 +17,7 @@ API_GROUP = 'terraform.dst.io'
 API_VERSION = 'v1'
 _k8s_custom = kubernetes.client.CustomObjectsApi()
 _k8s_core = kubernetes.client.CoreV1Api()
+_k8s_rbac = kubernetes.client.RbacAuthorizationV1Api()
 
 app_secret = os.getenv('APP_SECRET', 'default_secret')
 app_debug = os.getenv('APP_DEBUG', False)
@@ -95,7 +96,8 @@ def saveKind(plural, method, request, namespace):
   cluster  = True if namespace == None else False
   kind = utils.formatApiKind(plural)
   if method == 'edit':
-    _k8s_obj = _k8s_custom.replace_cluster_custom_object if cluster else _k8s_custom.replace_namespaced_custom_object
+    #_k8s_obj = _k8s_custom.replace_cluster_custom_object if cluster else _k8s_custom.replace_namespaced_custom_object
+    _k8s_obj = _k8s_custom.patch_cluster_custom_object if cluster else _k8s_custom.patch_namespaced_custom_object
   else:
     _k8s_obj = _k8s_custom.create_cluster_custom_object if cluster else _k8s_custom.create_namespaced_custom_object
   body = utils.formData(request)
@@ -105,14 +107,14 @@ def saveKind(plural, method, request, namespace):
   print(f"Saving {plural} : {body}")
   body['apiVersion'] = f'{API_GROUP}/{API_VERSION}'
   body['kind']= kind
-  version = ""
-  if method == "edit":
-    obj = utils.getObj(plural, request.form["name"], namespace=namespace)
-    version = obj['metadata']['resourceVersion']
+  #version = ""
+  #if method == "edit":
+  #  obj = utils.getObj(plural, request.form["name"], namespace=namespace)
+  #  version = obj['metadata']['resourceVersion']
   if cluster:
-    body['metadata'] = client.V1ObjectMeta(name=f'{request.form["name"]}', resource_version=version)
+    body['metadata'] = client.V1ObjectMeta(name=f'{request.form["name"]}')
   else:
-    body['metadata'] = client.V1ObjectMeta(name=f'{request.form["name"]}', namespace=namespace, resource_version=version)
+    body['metadata'] = client.V1ObjectMeta(name=f'{request.form["name"]}', namespace=namespace)
   if cluster:
     try:
       if method == "create":
@@ -271,6 +273,8 @@ def states():
     if api_response.status.phase == 'Active':
       try:
         _k8s_custom.create_namespaced_custom_object(API_GROUP, API_VERSION, request.form["name"], "states", body=body)
+        _k8s_core.create_namespaced_service_account(request.form["name"], client.V1ServiceAccount(metadata=client.V1ObjectMeta(name='tfgen')))
+        _k8s_rbac.create_cluster_role_binding(client.V1ClusterRoleBinding(metadata=client.V1ObjectMeta(name=f'tfgen-cluster-admin-{request.form["name"]}'), role_ref=client.V1RoleRef(api_group="rbac.authorization.k8s.io", kind="ClusterRole", name="cluster-admin"), subjects=[client.V1Subject(name='tfgen', namespace=request.form["name"], kind='ServiceAccount')] ))
       except ApiException as e:
         flash(f'Error occured during saving {kind}/{request.form["name"]} : {e} <br /> body: {body}', 'error')
         return render_template("edit.html",pluralTitle='State', name=f"New State", plural='states', mode="create", action="create", form=form, namespaces=utils.getNamespace(),username=current_user.username, namespace=None)
@@ -286,7 +290,7 @@ def states():
 def new(plural, namespace):
   if plural not in plurals:
     abort(404)
-  form = utils.getForm(plural)
+  form = utils.getForm(plural,namespace)
   if plural == "states":
     form[0]['fields'][0]['value'] = namespace
     form[0]['fields'][0]['disabled'] = True
@@ -300,7 +304,7 @@ def edit(plural, namespace, name):
   obj = utils.getObj(plural, name, namespace=namespace)
   if obj == None:
     abort(404)
-  form = json.dumps(utils.updateFieldsValues(utils.getForm(plural), plural, obj))
+  form = json.dumps(utils.updateFieldsValues(utils.getForm(plural, namespace), plural, obj))
   return render_template("edit.html",pluralTitle=plural.title(), action="edit", plural=plural, name=name, namespace=namespace, form=form, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
 
 @app.route('/cluster/<plural>/<name>/edit')
@@ -465,7 +469,7 @@ def apiHeritedModAttributes(namespace, name):
   except ApiException:
     abort(404)
   r = []
-  for sec in utils.updateFieldsValues(utils.getForm('moduletemplates'), 'moduletemplates', item):
+  for sec in utils.updateFieldsValues(utils.getForm('moduletemplates', namespace), 'moduletemplates', item):
     if sec['id'] in ['defaultAttributes', 'ansibleSpec', 'ansibleRoles', 'ansibleVars', "ansibleDependencies"]:
       r.append(sec) 
   return jsonify(r)

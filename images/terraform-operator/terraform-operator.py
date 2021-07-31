@@ -1,5 +1,3 @@
-# TODO remove disable when refactoring file
-# pylint: disable=bad-indentation
 from sys import api_version
 import kopf
 import kubernetes
@@ -11,9 +9,9 @@ import re
 import logging
 
 try:
-    config.load_kube_config()
+  config.load_kube_config()
 except:
-    config.load_incluster_config()
+  config.load_incluster_config()
 
 configuration = kubernetes.client.Configuration()
 configuration.debug = True
@@ -26,10 +24,14 @@ TERRAFORM_DELIMETER="-----------------------------------------------------------
 custom_api_instance = kubernetes.client.CustomObjectsApi(kubernetes.client.ApiClient(configuration))
 batch_api_instance = kubernetes.client.BatchV1Api(kubernetes.client.ApiClient(configuration))
 core_api_instance = kubernetes.client.CoreV1Api(kubernetes.client.ApiClient(configuration))
-#TODO:
+#TODO: validation:
 # deny multiple apply job for same state
 # realTime joblog ?
-
+# prevent delete tempalate if in use
+# prevent state creation if already
+#@kopf.on.login()
+#def login_fn(**kwargs):
+#    return kopf.login_via_client(**kwargs)
 
 def updateCustomStatus(logger, plural, namespace, name, vals):
   try:
@@ -42,14 +44,14 @@ def updateCustomStatus(logger, plural, namespace, name, vals):
     status = {}
   newstatus = status
   for k in vals:
-      if k == 'plans':
-        if 'plans' in status:
-          combined = status["plans"] + vals[k]
-        else:
-          combined = vals[k]
-        newstatus[k] = combined
+    if k == 'plans':
+      if 'plans' in status:
+        combined = status["plans"] + vals[k]
       else:
-        newstatus[k] = vals[k]
+        combined = vals[k]
+      newstatus[k] = combined
+    else:
+      newstatus[k] = vals[k]
 
   body = {'status': newstatus}
   try:
@@ -62,16 +64,17 @@ def updateCustomStatus(logger, plural, namespace, name, vals):
     pass
 
 def createJob(namespace, name, jobtype, action, obj):
+  update_trust_ca = "kubectl get states "+namespace+" -n "+namespace+"  -o=jsonpath='{.spec.trustedCA}' > /usr/local/share/ca-certificates/local.crt ; update-ca-certificates ; "
   if jobtype == "terraform":
     container_name = "terraform"
     init_container_name = "terraform-gen"
-    container_image = obj.spec["tfExecutorImage"]
-    init_container_image = obj.spec["tfGeneratorImage"]
-    container_image_policy = obj.spec["tfExecutorImagePullPolicy"]
-    init_container_image_policy = obj.spec["tfGeneratorImagePullPolicy"]
+    container_image = obj["spec"]["tfExecutorImage"]
+    init_container_image = obj["spec"]["tfGeneratorImage"]
+    container_image_policy = obj["spec"]["tfExecutorImagePullPolicy"]
+    init_container_image_policy = obj["spec"]["tfGeneratorImagePullPolicy"]
     target_env = ' '.join([ f'-target=module.{x}' for x in obj['spec']['targets']]) if 'targets' in obj['spec'] else ''
     env_tf_target = client.V1EnvVar(name="TF_TARGET", value=target_env)
-    env_tf_state = client.V1EnvVar(name="STATE", value=obj.spec['state'])
+    env_tf_state = client.V1EnvVar(name="STATE", value=namespace)
     env_tf_secret = client.V1EnvVar(name="K8S_SECRET", value=f"tf-plan-{name}")
     env_tf_path = client.V1EnvVar(name="TF_PATH", value="/tf/main.tf")
     env_tf_ns_val  = client.V1EnvVarSource(field_ref=client.V1ObjectFieldSelector(field_path="metadata.namespace"))
@@ -81,12 +84,11 @@ def createJob(namespace, name, jobtype, action, obj):
     vols = [client.V1Volume(name="tf", empty_dir={})]
     init_run_args = ["python /tfgen.py"]
     if action == "destroy":
-      tf_args = ["echo DESTROYYY"]
+      run_args = ["echo DESTROYYY"]
     elif action == "apply":
-     # tf_args = ["env; kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; cd /tf; terraform init; terraform show /tmp/plan;"]
-      run_args = ["kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; mkdir /tmp/empty; cd /tf; terraform init; terraform apply /tmp/plan;"]
+      run_args = [update_trust_ca + "kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; mkdir /tmp/empty; cd /tf; terraform init; terraform apply /tmp/plan;"]
     elif action == "plan":
-      run_args = ["mkdir /tmp/empty; cd /tf;  terraform init && terraform plan $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
+      run_args = [update_trust_ca + "mkdir /tmp/empty; cd /tf;  terraform init && terraform plan $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
   elif jobtype == "ansible":
     container_name = "ansible"
     init_container_name = "ansible-gen"
@@ -94,21 +96,21 @@ def createJob(namespace, name, jobtype, action, obj):
     init_container_image = obj.spec["ansibleGeneratorImage"]
     container_image_policy = obj.spec["ansibleExecutorImagePullPolicy"]
     init_container_image_policy = obj.spec["ansibleGeneratorImagePullPolicy"]
-    env_ansible_config = client.V1EnvVar(name="ANSIBLE_CONFIG", value="/config/ansible.cfg")
     env_ansible_log = client.V1EnvVar(name="ANSIBLE_LOG_PATH", value="/tmp/ansible.log")
     env_namespace = client.V1EnvVar(name="K8S_NAMESPACE", value=namespace)
     env_ansible_run = client.V1EnvVar(name="ANSIBLE_PLAN", value=name)
     env_ansible_color = client.V1EnvVar(name="ANSIBLE_FORCE_COLOR", value="1")
     env_ansible_color2 = client.V1EnvVar(name="PY_COLORS", value="1")
-    env = [env_ansible_config, env_ansible_log, env_namespace, env_ansible_run, env_ansible_color, env_ansible_color2]
-    vols_mount = [client.V1VolumeMount(name="data", mount_path="/data"), client.V1VolumeMount(name="ansible-config", mount_path="/config", read_only=True)]
-    vols = [client.V1Volume(name="ansible-config", config_map=client.V1ConfigMapVolumeSource(name="ansible-config")), client.V1Volume(name="data", empty_dir={})]
+    env_ansible_checkkey = client.V1EnvVar(name="ANSIBLE_HOST_KEY_CHECKING", value="False")
+    env = [ env_ansible_checkkey, env_ansible_log, env_namespace, env_ansible_run, env_ansible_color, env_ansible_color2]
+    vols_mount = [client.V1VolumeMount(name="data", mount_path="/data")]
+    vols = [client.V1Volume(name="data", empty_dir={})]
     if action == "plan":
       run_args = [f"python /ansible_run.py --plan"]
     elif action == "apply":
       run_args = [f"python /ansible_run.py --apply"]
     
-    init_run_args = ["cp /config/certs /usr/local/share/ca-certificates/local.crt ; update-ca-certificates ; python ansible_gen.py; cat /data/inventory.yaml; cat /data/playbook.yaml; cat /config/ansible.cfg; "]
+    init_run_args = [f" {update_trust_ca}  python ansible_gen.py; cat /data/inventory.yaml; cat /data/playbook.yaml;"]
   else:
     return False
 
@@ -126,7 +128,6 @@ def createJob(namespace, name, jobtype, action, obj):
   body = client.V1Job(api_version="batch/v1", kind="Job")
   body.metadata = client.V1ObjectMeta(namespace=namespace, generate_name=f"{jobtype}-{action}-{name}-", labels={"app": jobtype}, annotations={'planName': name, 'type': action})
   body.status = client.V1JobStatus()
-  #todo config backoff
   body.spec = client.V1JobSpec(ttl_seconds_after_finished=600, template=template.template, backoff_limit=backoff_limit)
 
   try: 
@@ -138,16 +139,16 @@ def createJob(namespace, name, jobtype, action, obj):
 
 
 def job(logger, name, namespace, body, jobtype, action):
-  job = createJob(namespace, body.metadata["name"], jobtype, action, body)
+  job = createJob(namespace, body["metadata"]["name"], jobtype, action, body)
   plural = 'plans' if jobtype == "terraform" else "ansibleplans"
   if job != False:
-      logger.info(f"{jobtype}-{action} {job} scheduled successfully")
-      status = {f'{action}Job': job}
-      updateCustomStatus(logger, plural, namespace, name, status)
-      return job
+    logger.info(f"{jobtype}-{action} {job} scheduled successfully")
+    status = {f'{action}Job': job}
+    updateCustomStatus(logger, plural, namespace, name, status)
+    return job
   else:
-      logger.info(f"{jobtype}-{action} scheduling failed")
-      return False
+    logger.info(f"{jobtype}-{action} scheduling failed")
+    return False
 
 def get_pod_log(logger, namespace, jobName):
   pods = core_api_instance.list_namespaced_pod(namespace, label_selector=f'job-name={jobName}').items
@@ -162,35 +163,8 @@ def get_pod_log(logger, namespace, jobName):
     try:
       log = core_api_instance.read_namespaced_pod_log(pod.metadata.name, namespace, container=pod.spec.init_containers[0].name)
     except ApiException as e:
-         log = str(e)
+      log = str(e)
   return log
-
-#@kopf.on.login()
-#def login_fn(**kwargs):
-#    return kopf.login_via_client(**kwargs)
-
-## autoPlanRequest handlers
-# TODO: handle cluster* / deletedModule
-@kopf.on.create(API_GROUP, API_VERSION, 'modules')
-@kopf.on.update(API_GROUP, API_VERSION, 'modules')
-@kopf.on.update(API_GROUP, API_VERSION, 'states')
-@kopf.on.update(API_GROUP, API_VERSION, 'providers')
-def autoPlan(body, name, namespace, logger, **kwargs):
-  if body.spec['autoPlanRequest']:
-    requestPlan = {
-        'apiVersion': f'{API_GROUP}/{API_VERSION}',
-        'kind': 'PlanRequest',
-        'metadata' : client.V1ObjectMeta(generate_name=f'auto-{name}-', namespace=namespace),
-        'spec': { "deletePlanOnDeleted": True}
-    }
-    if body['kind'] == 'Module':
-      requestPlan['spec']['targets'] = [name]
-  
-    try:
-      response = custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'planrequests', requestPlan)
-      logger.info(f'PlanRequest {response["metadata"]["name"]} successfully created for {name}')
-    except ApiException as e:
-      logger.error("Exception when calling CustomObjectsApi->create_namespaced_custom_object: %s\n" % e)
 
 def get_state(namespace):
   try:
@@ -199,7 +173,7 @@ def get_state(namespace):
     state = None
   return state
 
-def create_plan(logger, kind, stateName, namespace, planRequest, originalPlan=None, originalPlanRequest=None, targets=None):
+def create_plan(logger, kind, jobPrefx, namespace, planRequest, originalPlan=None, originalPlanRequest=None, targets=None):
   state = get_state(namespace)
   if state == None:
     logger.error(f"Cannot get state in namespace {namespace}, skipping create plan")
@@ -211,14 +185,13 @@ def create_plan(logger, kind, stateName, namespace, planRequest, originalPlan=No
   body = {
       'apiVersion': f'{API_GROUP}/{API_VERSION}',
       'kind': 'Plan' if kind == 'PlanRequest' else 'AnsiblePlan',
-      'metadata' : client.V1ObjectMeta(annotations=annotations, generate_name=f'{stateName}-', namespace=namespace),
+      'metadata' : client.V1ObjectMeta(annotations=annotations, generate_name=f'{jobPrefx}-', namespace=namespace),
       'spec': {
         "approved": False if originalPlan != None else state["spec"]["autoPlanApprove"],
         "deleteJobsOnDeleted": state["spec"]['deleteJobsOnPlanDeleted']
       }
   }
   if kind == 'PlanRequest':
-    body['spec']["deletePlansOnDeleted"] = state["spec"]['deletePlansOnPlanDeleted']
     body['spec']["state"] = state["metadata"]["name"]
     body['spec']["tfGeneratorImage"] = state["spec"]["tfGeneratorImage"]
     body['spec']["tfGeneratorImagePullPolicy"] = state["spec"]["tfGeneratorImagePullPolicy"]
@@ -232,7 +205,7 @@ def create_plan(logger, kind, stateName, namespace, planRequest, originalPlan=No
     body['spec']["ansibleExecutorImage"] = state["spec"]["ansibleExecutorImage"]
     body['spec']["ansibleExecutorImagePullPolicy"] = state["spec"]["ansibleExecutorImagePullPolicy"]
 
-  if targets != None:
+  if targets != None and len(targets) != 0:
     body['spec']['targets'] = targets
   
   try:
@@ -245,19 +218,28 @@ def create_plan(logger, kind, stateName, namespace, planRequest, originalPlan=No
   except Exception as e:
     logger.error(f'Failed to create plan for {kind} {planRequest}[{namespace}] in state {state["metadata"]["name"]}: {e}')
 
-## PLANREQUESTS handlers
+## CREATE CRD handlers
+
 @kopf.on.create(API_GROUP, API_VERSION, 'planrequests')
 @kopf.on.create(API_GROUP, API_VERSION, 'ansibleplanrequests')
 def planRequests(body, name, namespace, logger, **kwargs):
   targets = body.spec['targets'] if 'targets' in body.spec else None
   create_plan(logger,body['kind'], namespace, namespace, name, targets=targets)
 
-## PLANS handlers
 @kopf.on.create(API_GROUP, API_VERSION, 'plans')
 @kopf.on.create(API_GROUP, API_VERSION, 'ansibleplans')
 def createPlan(body, name, namespace, logger, **kwargs):
   jobtype = 'terraform' if body['kind'] == "Plan" else 'ansible'
   job(logger, body.metadata["name"], namespace, body, jobtype, 'plan')
+
+@kopf.on.create(API_GROUP, API_VERSION, 'modules')
+def moduleCreate(body, name, namespace, logger, **kwargs):
+  if not body.spec['autoPlanRequest']:
+    return
+  targets = [ name ] 
+  create_plan(logger, 'PlanRequest',  f'create-mod-{name}', namespace, name, targets=targets)
+
+## PLANS specific handlers
 
 @kopf.on.field(API_GROUP, API_VERSION, 'plans', field="status.planStatus")
 @kopf.on.field(API_GROUP, API_VERSION, 'ansibleplans', field="status.planStatus")
@@ -333,7 +315,8 @@ def applyStatus(diff, status, namespace, logger, body, **kwargs):
         if state == None:
           logger.error(f"Cannot get state in namespace {namespace}, skipping create AnsiblePlan")
           return
-        approved = True if len(module_names) != 0 else state['spec']['autoPlanApprove']
+        #approved = True if len(module_names) != 0 else state['spec']['autoPlanApprove']
+        approved = True if body['metadata']['name'].startswith('create-mod-') else state['spec']['autoPlanApprove']
         plan_body = {
           'apiVersion': f'{API_GROUP}/{API_VERSION}',
           'kind': 'AnsiblePlan',
@@ -357,6 +340,7 @@ def applyStatus(diff, status, namespace, logger, body, **kwargs):
       log = get_pod_log(logger, namespace, body.status['applyJob'])
     except ApiException:
       log = "pod not found"
+    #todo : retry when locked state
     updateCustomStatus(logger, plural, namespace, body.metadata.name, {'applyOutput' : log})
     if body['kind'] == "Plan" and log and "Saved plan is stale" in log:
       logger.info(f"Saved plan is stale, trying to request a new plan with OriginalPlan {body.metadata.name}")
@@ -367,11 +351,19 @@ def applyStatus(diff, status, namespace, logger, body, **kwargs):
   if diff[0][2] != "Active" and diff[0][3] == "Active":
     logger.info(f'{body["kind"]} {body.metadata["name"]} become Active')
 
+## DELETE CRD HANDLERS
+
+@kopf.on.delete(API_GROUP, API_VERSION, 'modules')
+def moduleDelete(body, name, namespace, logger, **kwargs):
+  if not body.spec['autoPlanRequest']:
+    return
+  create_plan(logger, 'PlanRequest', f'delete-mod-{name}', namespace, name, targets=[name])
+
 @kopf.on.delete(API_GROUP, API_VERSION, 'plans')
 @kopf.on.delete(API_GROUP, API_VERSION, 'ansibleplans')
 def planDelete(body, name, namespace, logger, **kwargs):
   logger.info(f"Deleting {body['kind']} {name}[{namespace}], cleaning associate planOutputs & job")
-  if body['kind'] == 'Plans' and body.spec["deletePlansOnDeleted"]: 
+  if body['kind'] == 'Plans': 
     secretPlan = f'tf-plan-{name}'
     try:
       logger.info(f"Deleting secret plan {secretPlan}[{namespace}]")
@@ -396,17 +388,60 @@ def planDelete(body, name, namespace, logger, **kwargs):
 def planRequestDelete(body, name, namespace, logger,  **kwargs):
   if "spec" in body and body['spec']["deletePlanOnDeleted"]: 
     plural = 'plans' if body['kind'] == "PlanRequest" else 'ansibleplans'
-    try:
-      a = body['status']['plans']
-    except:
-      return
-    for plan in body['status']['plans']:
+    for plan in body['status']['plans'] if 'plans' in body['status'] else []:
       logger.info(f"Deleting {body['kind']} {plan}[{namespace}]")
       try:
         custom_api_instance.delete_namespaced_custom_object(API_GROUP, API_VERSION, namespace, plural, plan)
       except ApiException as e:
         logger.error(f"Exception when trying to delete {body['kind']} {plan} : {e}")
         return
+
+## UPDATE CRD HANDLERS
+
+@kopf.on.update(API_GROUP, API_VERSION, 'states')
+def stateUpdate(body, name, namespace, logger, **kwargs):
+  if not body.spec['autoPlanRequest']:
+    return
+  create_plan(logger, 'PlanRequest',  f'update-state-{name}', namespace, name)
+
+@kopf.on.update(API_GROUP, API_VERSION, 'providers')
+def  providersUpdate(body, name, namespace, logger, **kwargs):
+  targets = [ module['metadata']['name']  for module in custom_api_instance.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'modules')["items"] if module['spec']['autoPlanRequest']]
+  if len(targets) != 0:
+    create_plan(logger, 'PlanRequest',  f'update-prs-{name}', namespace, name, targets=targets)
+
+@kopf.on.update(API_GROUP, API_VERSION, 'moduletemplates')
+def  moduleTemplateUpdate(body, name, namespace, logger, **kwargs):
+  targets = [ module['metadata']['name']  for module in custom_api_instance.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'modules')["items"] if module['spec']['autoPlanRequest'] and "moduleTemplate" in module['spec'] and module['spec']['moduleTemplate'] == name]
+  if len(targets) != 0:
+    create_plan(logger, 'PlanRequest', f'update-modtpl-{name}', namespace, name, targets=targets)
+
+@kopf.on.update(API_GROUP, API_VERSION, 'clusterproviders')
+def clusterProvidersUpdate(body, name, logger, **kwargs):
+  for ns in core_api_instance.list_namespace(label_selector="toolbox-managed=true").items:
+    state = get_state(ns.metadata.name)
+    if state == None:
+      logger.error(f'Unable to find state in namespace {ns.metadata.name}')
+      continue
+    if "clusterProviders" in state['spec'] and name in state['spec']['clusterProviders']:
+      targets = [ module['metadata']['name']  for module in custom_api_instance.list_namespaced_custom_object(API_GROUP, API_VERSION, ns.metadata.name, 'modules')["items"] if module['spec']['autoPlanRequest']]
+      if len(targets) != 0:
+        create_plan(logger, 'PlanRequest', f'update-clmodprds-{name}', ns.metadata.name, name, targets=targets)
+
+@kopf.on.update(API_GROUP, API_VERSION, 'clustermoduletemplates')
+def clusterModuleUpdate(body, name, logger, **kwargs):
+  for ns in core_api_instance.list_namespace(label_selector="toolbox-managed=true").items:
+    targets = [ module['metadata']['name']  for module in custom_api_instance.list_namespaced_custom_object(API_GROUP, API_VERSION, ns.metadata.name, 'modules')["items"] if module['spec']['autoPlanRequest'] and "clusterModuleTemplate" in module['spec'] and module['spec']['clusterModuleTemplate'] == name]
+    if len(targets) != 0:
+      create_plan(logger, 'PlanRequest', f'update-clmodtpl-{name}', ns.metadata.name, name, targets=targets)
+
+@kopf.on.update(API_GROUP, API_VERSION, 'modules')
+def moduleUpdate(body, name, namespace, logger, **kwargs):
+  if not body.spec['autoPlanRequest']:
+    return
+  targets = [ name ] 
+  create_plan(logger, 'PlanRequest',  f'update-mod-{name}', namespace, name, targets=targets)
+
 
 ## JOBS handlers
 @kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'terraform'}, field="status.succeeded")
@@ -421,39 +456,6 @@ def jobSucceeded(diff, status, namespace, logger, body, **kwargs):
     status = {f'{tftype}StartTime': body.status['startTime'], f'{tftype}Status' : 'Completed', f'{tftype}CompleteTime' : end}
     plan_name = body.metadata.annotations['planName']
     updateCustomStatus(logger, plural, namespace, plan_name, status)
-    
-
-    #  # TODO: targets not mandatory ?
-    #  #TODO ansible call
-    #  plan = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', plan_name)
-    #  targets = plan["spec"]["targets"]
-    #  hosts = []
-    #  module_names = []
-    #  for target in targets:
-    #    module_name = target.split(".")[1]
-    #    module_names.append(module_name)
-    #    module = custom_api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'modules', module_name)
-#
-    #    if "ansibleAttributes" in module["spec"] and "targets" in module["spec"]["ansibleAttributes"]:
-    #      for host in module["spec"]["ansibleAttributes"]["targets"]:
-    #        hosts.append(host['fqdn'])
-    #  if len(hosts) == 0:
-    #    logger.info(f"No FQDN found for module {modules_names}, skipping AnsiblePlan creation")
-    #    return
-    #  plan_body = {
-    #    'apiVersion': f'{API_GROUP}/{API_VERSION}',
-    #    'kind': 'AnsiblePlan',
-    #    'metadata' : client.V1ObjectMeta(generate_name=f'ter-{plan_name}-', namespace=namespace, labels={'source': 'TerraformPlan', "terraformPlan": plan_name}),
-    #    'spec': {
-    #      "approved": False,
-    #      "auto": {
-    #        "hosts": hosts,
-    #        "terraformPlan": plan_name
-    #      }
-    #    }
-    #  }
-    #  api_response = custom_api_instance.create_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'ansibleplans', plan_body)
-    #  updateCustomStatus(logger, 'plans', namespace, plan_name, {'AnsiblePlan': api_response['metadata']['name']})
 
 @kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'terraform'}, field="status.active")
 @kopf.on.field('batch', 'v1', 'jobs', labels={'app': 'ansible'}, field="status.active")
@@ -502,4 +504,4 @@ def jobCondition(diff, status, namespace, logger, body, **kwargs):
 
 @kopf.on.startup()
 def configure(settings: kopf.OperatorSettings, **_):
-    settings.posting.level = logging.DEBUG
+  settings.posting.level = logging.DEBUG

@@ -305,15 +305,13 @@ function getInput(type, value="", required=false, disabled=false, password=false
         h =  '<input type="'+t+'" '+required+' value="'+value+'" '+disabled+' '+complete+' class="form-control" placeholder="Attribute Value" />';
       break;
       case "bValue":
-      case "lbValue":  
-        var tval = '';
-        var fval = '';
-        if (value == 'true') {
-          tval = (value == 'true') ? 'selected': '';
+      case "lbValue": 
+        if (value == 'true' || value == true) {
+          tval = 'selected';
           fval = '';
         }
-        else if (value == 'false') {
-          fval = (value == 'true') ? 'selected': '';
+        else if (value == 'false' || value == false) {
+          fval = 'selected';
           tval = '';
         }
         h = '<select class="form-control" '+disabled+'><option value="true" '+tval+'>True</option><option value="false" '+fval+'>False</option></select>';
@@ -494,6 +492,9 @@ function genFields(fields) {
           });
           html += '</select>'
         break;
+        case 'textarea':
+          html += '<textarea class="form-control" name="'+field['id']+'">'+field['value']+'</textarea>';
+        break
         case "environments": 
             switch(plural) {
               case "clustermoduletemplates":
@@ -940,7 +941,7 @@ function setinvalid(attr, invalid=true){
   });
   $(".actiondelete").click(function() {
     if (confirm('Arey you sure to delete {{plural}}/{{name}} ?')) {
-        {% if namespace == None %}
+        {% if plural == "clusterproviders" or plural == "clustermoduletemplates" %}
           location.href = '/cluster/{{plural}}/?delete=true&name={{name}}'
         {% else %}
           location.href = '/{{plural}}/{{namespace}}/?delete=true&name={{name}}'

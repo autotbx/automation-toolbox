@@ -48,7 +48,6 @@ def formatKind(kind, obj):
       'autoPlanApprove': obj["spec"]["autoPlanApprove"],
       'autoPlanRequest' : obj["spec"]['autoPlanRequest'],
       'deleteJobsOnPlanDeleted': obj["spec"]['deleteJobsOnPlanDeleted'],
-      'deletePlansOnPlanDeleted': obj["spec"]['deletePlansOnPlanDeleted'],
       'clusterProviders' : ','.join(obj["spec"]["clusterProviders"]) if "clusterProviders" in obj["spec"] else "",
       'environment' : obj["spec"]["environment"] if "environment" in obj["spec"] else "",
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
@@ -168,10 +167,10 @@ def getObj(plural, name, namespace=None):
             return None
     return obj
 
-def getForm(plural):
+def getForm(plural, namespace=None):
     clproviders = _k8s_custom.list_cluster_custom_object(API_GROUP, API_VERSION, 'clusterproviders')["items"]
     cltemplates = _k8s_custom.list_cluster_custom_object(API_GROUP, API_VERSION, 'clustermoduletemplates')["items"]
-    templates = _k8s_custom.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'moduletemplates')["items"]
+    templates = _k8s_custom.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'moduletemplates')["items"] if namespace != None else []
     clusterProviders = [k['metadata']["name"] for k in clproviders]
     clusterModuleTemplates  = [k['metadata']["name"] for k in cltemplates]
     moduleTemplates = [k['metadata']["name"] for k in templates]
@@ -676,13 +675,6 @@ def getForm(plural):
         "value": True
         },
         {
-        "id": "deletePlansOnPlanDeleted",
-        "type": "boolean",
-        "name": "Auto Delete Plan On Plan Deleted",
-        "required": True,
-        "value": True
-        },
-        {
         "id": "environment",
         "type": "string",
         "name": "Environment",
@@ -742,6 +734,12 @@ def getForm(plural):
         "type": "list",
         "name": "Ansible Generator Image Pull Policy",
         "options": ["Always", "Never", "IfNotPresent"],
+        },
+        {
+          "id" : "trustedCA",
+          "type": "textarea",
+          "name": "Trusted CA",
+          "value": "",
         }
       ]
     }
@@ -764,7 +762,6 @@ def updateFieldsValues(form, plural, obj):
     form = updateFieldsValue(form, "spec", "autoPlanApprove", "value", obj['spec']['autoPlanApprove'])
     form = updateFieldsValue(form, "spec", "autoPlanRequest", "value", obj['spec']['autoPlanRequest'])
     form = updateFieldsValue(form, "spec", "deleteJobsOnPlanDeleted", "value", obj['spec']['deleteJobsOnPlanDeleted'])
-    form = updateFieldsValue(form, "spec", "deletePlansOnPlanDeleted", "value", obj['spec']['deletePlansOnPlanDeleted'])
     form = updateFieldsValue(form, "spec", "customTerraformInit", "value", obj['spec']['customTerraformInit'] if "customTerraformInit" in obj['spec'] else '')
     form = updateFieldsValue(form, "spec", "tfExecutorImage", "value", obj['spec']['tfExecutorImage'])
     form = updateFieldsValue(form, "spec", "tfExecutorImagePullPolicy", "value", obj['spec']['tfExecutorImagePullPolicy'])
@@ -776,6 +773,7 @@ def updateFieldsValues(form, plural, obj):
     form = updateFieldsValue(form, "spec", "ansibleGeneratorImagePullPolicy", "value", obj['spec']['ansibleGeneratorImagePullPolicy'])
     form = updateFieldsValue(form, "spec", "clusterProviders", "values", obj['spec']['clusterProviders'] if "clusterProviders" in obj["spec"] else [])
     form = updateFieldsValue(form, "spec", "environment", "value", obj['spec']['environment'] if 'environment' in obj["spec"] else [])
+    form = updateFieldsValue(form, "spec", "trustedCA", "value", obj['spec']['trustedCA'])
   elif plural == "providers" or plural == "clusterproviders":
     form = updateFieldsValue(form, "spec", "name", "value", obj['metadata']['name'])
     form = updateFieldsValue(form, "spec", "name", "disabled", True)

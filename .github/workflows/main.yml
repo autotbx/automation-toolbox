@@ -23,8 +23,8 @@ jobs:
             TAGS=${GITHUB_REF/refs\/tags\//}
           else
             TAGS="latest"
-           echo '::set-output name=tags::'$TAGS
           fi
+          echo '::set-output name=tags::'$TAGS
       - name: Terraform - Build and push
         uses: docker/build-push-action@v2
         with:

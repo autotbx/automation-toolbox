@@ -19,7 +19,7 @@ jobs:
       - name: Build and push
         id: gen_tags
         run: |
-          if [[ $GITHUB_REF == 'refs/tags/'* ]]; then
+          if [[ $GITHUB_REF == 'refs/tags/*' ]]; then
             TAGS=${GITHUB_REF/refs\/tags\//}
           else
             TAGS = "latest"

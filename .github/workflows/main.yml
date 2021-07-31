@@ -15,3 +15,7 @@ jobs:
         run: tag=${GITHUB_REF/refs\/tags\//}
       - name: print tag
         run: echo $tag
+      - name: build
+        run: docker build images/terraform -t terraform:$tag
+      - name: list
+        run: docker images

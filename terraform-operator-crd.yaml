@@ -677,12 +677,9 @@ spec:
           properties:
             spec:
               required:
-              - autoPlanRequest
               - type
               type: object
               properties:
-                autoPlanRequest:
-                  type: boolean
                 type:
                   type: string
                 attributes:
@@ -794,10 +791,6 @@ spec:
       subresources:
         status: {}
       additionalPrinterColumns:
-      - jsonPath: .spec.autoPlanRequest
-        name: autoPlanRequest
-        type: string
-        description: autoPlanRequest
       - jsonPath: .metadata.creationTimestamp
         name: age
         type: date
@@ -809,7 +802,6 @@ spec:
           properties:
             spec:
               required:
-              - autoPlanRequest
               - type
               type: object
               properties:

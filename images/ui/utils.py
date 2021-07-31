@@ -87,7 +87,6 @@ def formatKind(kind, obj):
     return {
       'name' : link,
       'type' : obj["spec"]["type"] if "type" in obj["spec"] else "",
-      'autoPlanRequest' : obj['spec']['autoPlanRequest'],
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
       'namespace':  nslink if "namespace" in obj["metadata"] else None
     }
@@ -213,13 +212,6 @@ def getForm(plural, namespace=None):
         "type": "string",
         "name": "Type",
         "required": True
-        },
-        {
-        "id": "autoPlanRequest",
-        "type": "boolean",
-        "name": "Auto Plan Request",
-        "required": True,
-        "value": True
         }],
       },
       {
@@ -252,13 +244,6 @@ def getForm(plural, namespace=None):
         "type": "string",
         "name": "Type",
         "required": True
-        },
-        {
-        "id": "autoPlanRequest",
-        "type": "boolean",
-        "name": "Auto Plan Request",
-        "required": True,
-        "value": True
         }],
       },
       {
@@ -777,7 +762,6 @@ def updateFieldsValues(form, plural, obj):
   elif plural == "providers" or plural == "clusterproviders":
     form = updateFieldsValue(form, "spec", "name", "value", obj['metadata']['name'])
     form = updateFieldsValue(form, "spec", "name", "disabled", True)
-    form = updateFieldsValue(form, "spec", "autoPlanRequest", "value", obj['spec']['autoPlanRequest'])
     form = updateFieldsValue(form, "spec", "type", "value", obj['spec']['type'])
     form = updateFieldsValue(form, "environments", "environments", "value", obj['spec']['environments'] if 'environments' in obj["spec"] else [])
     form = updateFieldsValue(form, "attributes", "attributes", "value", obj['spec']['attributes'] if 'attributes' in obj["spec"] else [])
@@ -909,7 +893,6 @@ def apiMapping(kind):
     return [
       { "name": "Name", "field": "name"},
       { "name": "Type", "field": "type"},
-      { "name": "autoPlanRequest", "field": "autoPlanRequest"},
       { "name" : "CreationTime", "field": "creationTimestamp"},
     ]
   elif kind == "moduletemplates" or kind == "clustermoduletemplates":

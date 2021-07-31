@@ -11,11 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: set tag
-        run: tag=${GITHUB_REF/refs\/tags\//}
-      - name: print tag
-        run: echo $tag
       - name: build
-        run: docker build images/terraform -t terraform:$tag
+        run: docker build images/terraform -t terraform:${GITHUB_REF/refs\/tags\//}
       - name: list
         run: docker images

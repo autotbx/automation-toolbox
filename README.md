@@ -1,12 +1,15 @@
-# terraform-operator
+# AUTOMATION-TOOLBOX
 
-This is the reposity for the terraform-operator.
+This is the reposity for the automation-toolbox.
 
-Terraform-operator is an operator for Kubernetes.
+automation-toolbox is is an operator for Kubernetes.
 
-The goal of this operator is to provide Kubernetes CRDs to manage the plan, execution and the state of a terraform project based on external terraform module.
+The goal of this operator is to provide Kubernetes CRDs to manage :
 
-The idea is to have a simple way to consume a terraform module without advanced terraform understanding.
+* the plan, execution and the state of a terraform project based on external terraform module
+* the plan, execution of a ansible project based on external ansible role
+
+The idea is to have a simple way to consume a terraform module/ansible roles without advanced terraform/ansible understanding.
 
 # High level Overview
 
@@ -31,6 +34,8 @@ In addition to the previous items, a templating engine is available for the Modu
 * ModuleTemplates (namespaced)
 
 Cluster-wide objects are used to be shared between multiple namespace.
+
+Module is also used for ansible configuration
 
 At the moment, one Kubernetes namespace represent a terraform project that use the same terraform state.
 These objects can be represented like this:
@@ -156,7 +161,12 @@ provider "vsphere" {
 The same behaviour happens the previous listed objets, except for the Modules that support attributes heritance from the referenced template.
 State is automatically managed by the operator.
 
-You can use the commands ``` kubectl logs POD-ID -c tfgen``` to have the generated output.
+You can use the commands ``` kubectl logs POD-ID -c terraform-gen``` to have the generated output.
+
+## Ansible code generation
+
+The code is generated from the modules ansibleAttributes key. These attributes take the attributes heritence from the referenced templates.
+
 
 # Objects definitions
 ## Attributes type

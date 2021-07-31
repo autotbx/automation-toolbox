@@ -24,12 +24,7 @@ TERRAFORM_DELIMETER="-----------------------------------------------------------
 custom_api_instance = kubernetes.client.CustomObjectsApi(kubernetes.client.ApiClient(configuration))
 batch_api_instance = kubernetes.client.BatchV1Api(kubernetes.client.ApiClient(configuration))
 core_api_instance = kubernetes.client.CoreV1Api(kubernetes.client.ApiClient(configuration))
-#TODO: validation:
-# deny multiple apply job for same state
-# realTime joblog ?
-# prevent delete tempalate if in use
-# prevent state creation if already
-#@kopf.on.login()
+
 #def login_fn(**kwargs):
 #    return kopf.login_via_client(**kwargs)
 

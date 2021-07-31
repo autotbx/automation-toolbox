@@ -11,7 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: build
+      - name: terraform
         run: docker build images/terraform -t terraform:${GITHUB_REF/refs\/tags\//}
+      - name: terraform-gen
+        run: docker build images/terraform-gen -t terraform-gen:${GITHUB_REF/refs\/tags\//}
+      - name: ansible
+        run: docker build images/ansible -t ansible:${GITHUB_REF/refs\/tags\//}
+      - name: ansible-gen
+        run: docker build images/ansible -t ansible-gen:${GITHUB_REF/refs\/tags\//}
+      - name: terraform-operator
+        run: docker build images/terraform-operator -t terraform-operator:${GITHUB_REF/refs\/tags\//}
       - name: list
         run: docker images

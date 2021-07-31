@@ -1,0 +1,15 @@
+name: CI
+on:
+  push:
+    branches: [ dst-op ]
+    #  pull_request:
+    #    branches: [ master ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: aze
+        run: ls -l $GITHUB_WORKSPACE
+      - name: env
+        run: env

@@ -191,7 +191,6 @@ This object represent a terraform provider at the cluster. Cluster level is used
 |----------|----------|----------|---------|-------|
 |metadata.name | string |true |         |Name of the provider|
 |spec.type |string|true      |         |Type of the provider (terraform name)|
-|spec.autoPlanRequest|boolean|true||Create auto PlanRequest if modified|
 |spec.attributes| array[attributes]   |true|         | attributes to use for terraform|
 |spec.environments | array[array[attributes]] |false|| Overwrite attributes for defined env|
 
@@ -202,7 +201,6 @@ metadata:
   name: vcsa
 spec:
   type: vsphere
-  autoPlanRequest: true
   attributes:
   - name: user
     sValue: "toolbox2@lab.platform-essential.com"
@@ -227,7 +225,6 @@ This object represent a terraform provider at the namespace level.
 |----------|----------|----------|---------|-------|
 |metadata.name | string |true |         |Name of the provider|
 |spec.type |string|true      |         |Type of the provider (terraform name)|
-|spec.autoPlanRequest|boolean|true||Create auto PlanRequest if modified|
 |spec.attributes| array[attributes]   |true|         | attributes to use for terraform|
 
 
@@ -238,7 +235,6 @@ metadata:
   name: vcsa
 spec:
   type: vsphere
-  autoPlanRequest: true
   attributes:
   - name: user
     sValue: "toolbox2@lab.platform-essential.com"
@@ -260,13 +256,18 @@ This object define the state properties
 |spec.clusterProviders |array[string]|false      |         |Provider to include in this state|
 |spec.autoPlanRequest|boolean|true||Create auto PlanRequest if modified|
 |spec.autoPlanApprove|boolean|true||Automatically approve generated plan|
-|spec.deleteJobsOnPlanDeleted| boolean |true||Delete jobs created by the deleted plan|
-|spec.deletePlansOnPlanDeleted| boolean |true||todo|
+|spec.deleteJobsOnPlanDeleted| boolean |true||Delete jobs created by the deleted plan, used by auto plan|
 |spec.customTerraformInit| string |false|| Custom terraform section { } code|
-|spec.tfGeneratorImage| string |false|TODO| Terraform code generator image pulling path|
-|spec.tfExecutorImage| string |false|TODO| Terraform executor image pulling path|
-|spec.tfGeneratorImagePullPolicy| string |false|TODO| erraform code generator image policy|
-|spec.tfExecutorImagePullPolicy| string |false|TODO| erraform code generator image policy|
+|spec.trustedCA|string|false||Addition trusted CA|
+|spec.tfGeneratorImage| string |false|dstoffel/terraform-gen| Terraform code generator image pulling path|
+|spec.tfExecutorImage| string |false|dstoffel/terraform| Terraform executor image pulling path|
+|spec.tfGeneratorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
+|spec.tfExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
+|spec.ansibleGeneratorImage| string |false|dstoffel/ansible| Ansible code generator image path|
+|spec.ansibleExecutorImage| string |false|dstoffel/ansible-gen| Ansible executor image path|
+|spec.ansibleGeneratorImagePullPolicy| string |false|IfNotPresent| erraform code generator image policy|
+|spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
+|spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
 
 ```
 apiVersion: terraform.dst.io/v1
@@ -280,7 +281,6 @@ spec:
   autoPlanApprove: false
   autoPlanRequest: true
   deleteJobsOnPlanDeleted: true
-  deletePlansOnPlanDeleted: true
   customTerraformInit: 'required_providers { vsphere = "= 1.15" }'
 ```
 
@@ -297,6 +297,7 @@ ClusterModuleTemplates can be consumed by a Module to provides default configura
 |spec.requiredAttributes|array[attributes]|true      |         |Required attributes for module that consume this template|
 |spec.defaultAttributes|array[attributes]|true      |         |Default attributes for module that consume this template|
 |spec.environments|array[array[attributes]]|false      |         |Default attributes for module that consume this template in the specify environment|
+|spec.ansibleAttribute|ansibleAttributes|false      |         |Default ansibleAttributes for module that consume this template in the specify environment|
 
 ```
 apiVersion: terraform.dst.io/v1
@@ -349,6 +350,7 @@ ModuleTemplates can be consumed by a Module to provides default configuration wi
 |spec.autoPlanRequest | string |false | true       |Enable auto plan request on object modificiation|
 |spec.requiredAttributes|array[attributes]|true      |         |Required attributes for module that consume this template|
 |spec.defaultAttributes|array[attributes]|true      |         |Default attributes for module that consume this template|
+|spec.ansibleAttribute|ansibleAttributes|false      |         |Default ansibleAttributes for module that consume this template in the specify environment|
 
 ```
 apiVersion: terraform.dst.io/v1
@@ -395,6 +397,7 @@ A module object represent a terraform module.
 |spec.autoPlanRequest | string |false | true       |Enable auto plan request on object modificiation|
 |spec.requiredAttributes|array[attributes]|true      |         |Required attributes for module that consume this template|
 |spec.defaultAttributes|array[attributes]|true      |         |Default attributes for module that consume this template|
+|spec.ansibleAttribute|ansibleAttributes|false      |         |Default ansibleAttributes for module that consume this template in the specify environment|
 
 ```
 apiVersion: terraform.dst.io/v1
@@ -417,7 +420,7 @@ spec:
 ```
 
 
-## PlanRequests
+## PlanRequests / AnsiblePlanRequests
 
 PlanRequest are used to request the generation of a new Plan.
 
@@ -428,24 +431,30 @@ PlanRequest are used to request the generation of a new Plan.
 |spec.targets|array[string]|false||Target limitation during terraform operation|
 
 
-## Plans
+## Plans / AnsiblePlans
 
-Plan is the equivalent of the terraform plan/apply. You should create this object as they are created by the PlanRequest object.
+Plan is the equivalent of the terraform/ansible plan/apply. You should create this object as they are created by the PlanRequest object.
 
 | variable | type | required | default | Description |
 |----------|----------|----------|---------|-------|
 |metadata.name | string |true |         |Name of the Plan|
 |spec.approved |boolean]|true      |         |Approved plan (ie terraform apply will run with this plan)|
 |spec.targets|array[string]|false||Target limitation during terraform operation|
-|spec.tfGeneratorImage| string |false|TODO| Terraform code generator image pulling path|
-|spec.tfExecutorImage| string |false|TODO| Terraform executor image pulling path|
-|spec.tfGeneratorImagePullPolicy| string |false|TODO| erraform code generator image policy|
-|spec.tfExecutorImagePullPolicy| string |false|TODO| erraform code generator image policy|
-
+|spec.tfGeneratorImage| string |false|dstoffel/terraform-gen| Terraform code generator image pulling path|
+|spec.tfExecutorImage| string |false|dstoffel/terraform| Terraform executor image pulling path|
+|spec.tfGeneratorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
+|spec.tfExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
+|spec.ansibleGeneratorImage| string |false|dstoffel/ansible| Ansible code generator image path|
+|spec.ansibleExecutorImage| string |false|dstoffel/ansible-gen| Ansible executor image path|
+|spec.ansibleGeneratorImagePullPolicy| string |false|IfNotPresent| erraform code generator image policy|
+|spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
+|spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
 
 
 
 ## Ansible
+
+TODO
 
 Ansible runs are launched when a Terraform run is finished or manually when  a user request it
 
@@ -519,42 +528,6 @@ When the plan is approved, an `AnsibleRun` is created, first, it will run
 `ansible-playbook` -C and validate that the diff of change from the plan are
 the same. If it's the same, `ansible-playbook` is run.
 
-### Ansible config
-
-Global ansible config must be defined in `ansible-config` ConfigMap, e.g.:
-
-```
-apiVersion: v1
-data:
-  ansible.cfg: |
-    [defaults]
-    log_file=/tmp/ansible.log
-  certs: |-
-    -----BEGIN CERTIFICATE-----
-    MIIDMzCCAhugAwIBAgIJANUZ1ChD0mPGMA0GCSqGSIb3DQEBCwUAMDAxLjAsBgNV
-    BAMMJXRvb2xib3gudm0ubGFiLnBsYXRmb3JtLWVzc2VudGlhbC5jb20wHhcNMjEw
-    MzE1MTgyODM1WhcNMzEwMzEzMTgyODM1WjAwMS4wLAYDVQQDDCV0b29sYm94LnZt
-    LmxhYi5wbGF0Zm9ybS1lc3NlbnRpYWwuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOC
-    AQ8AMIIBCgKCAQEAtsbi1Ag7WOujRQHDCOVQFtReON3rNpO+dBlXXuAH2ZYaVMJA
-    FzAHWI3IYY8bwT7VBWP2BmMLNHjPh17eeoC72FyeqvS3DNsWcZNnpDk64cljTEJC
-    d3dRJixIgFrufoa7oqa/fv8VdchGJgxExjpicd3gp6HW5+Tz+YsJ5qYhQgogJ/Kl
-    agthf3AGedGdoDIaU7zvzwkVt29fi425We4JVUXKhhb7jG17aWU2Oko5lgkFFy+1
-    7nJrXfSko1eFNv4SG0vC0flNlF0Hod3P7tdf0pDfmQ3fVp1jFP6W9m+swQeqtVzN
-    ae3vNBn7QXORgbm0KQzDeYS4/Pwq+9uz75SAjwIDAQABo1AwTjAdBgNVHQ4EFgQU
-    Nc51dwzwSuctHGxv8ookgGIQ3AswHwYDVR0jBBgwFoAUNc51dwzwSuctHGxv8ook
-    gGIQ3AswDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEADCKviNl9Xp1a
-    bsaoNKOjOX2hNc1xLLAyAEtWv1j38EhLcO8ya/iIu6fcCt/GJKhyXT+9W6A1lNkv
-    Fvh7PTtj34UWkgPLomJFalLFVgLjxXn0Rs+Oe+wgEh9JTzFXgJxzlY+7SkBSoFmH
-    N30Grp3YRE0KRb1lprtJOUstMnOSEttlq8hMczmhDkjZpJQTSBn5A3Fph4rWA7aF
-    cCjozMtmNLyc4yUeiXg7fr2TmLMpA9BEA+z+qWJDfCycqeyCx8I8hf1BMH8MeJ2R
-    +R7RNhjj2sdvEnywNpk0f2TTFObwkt7plxIw5aXdWU7qWuS0eUo3I0JGWjLHKN7z
-    jrDKTa1yHA==
-    -----END CERTIFICATE-----
-kind: ConfigMap
-metadata:
-  name: ansible-config
-  namespace: default
-```
 
 ### Modules
 
@@ -590,14 +563,3 @@ spec:
     credentials:
      ...
 ```
-
-# TODO
-
-- Check what happens when CRD are created when ansible not there
-- Lock strategy when Ansible or Terraform job is running to prevent two jobs to run in the same namespace 
-- Retry strategy when a job is finished to launch waiting Ansible or Terraform jobs
-- ModuleTemplate for ansible
-- Galaxy server: https://docs.ansible.com/ansible/latest/galaxy/user_guide.html#downloading-a-collection-from-automation-hub
-- Plan request sur plan, déplacer d'annotation dans spec
-- Verify than a ansible plan is always created after an terraform plan, even if no changes
-- credentilas

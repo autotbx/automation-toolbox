@@ -34,10 +34,21 @@ spec:
     metadata:
       labels:
         application: terraform-ui
+      annotations:
+        checksum/users: {{ .Values.ui.users | toJson | sha256sum }}
     spec:
       serviceAccountName: terraform-operator
+      volumes:
+      - name: ui-users
+        configMap:
+          name: ui-users
       containers:
       - name: terraform
+        volumeMounts:
+        - name: ui-users
+          mountPath: /ui/users.json
+          subPath: users.json
+          readOnly: true
         image: "{{ .Values.ui.image }}:{{ .Values.ui.tag | default .Chart.AppVersion }}"
         imagePullPolicy:  "{{ .Values.ui.pullPolicy }}"
         ports:

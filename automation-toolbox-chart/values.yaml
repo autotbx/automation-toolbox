@@ -38,6 +38,7 @@ ui:
   image: dstoffel/ui
   #tag:
   pullPolicy: IfNotPresent
+  users: [{"username": "admin", "password" : "password"}]
   serviceAccount:
     create: true
     annotations: {}

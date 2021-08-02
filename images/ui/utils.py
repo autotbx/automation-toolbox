@@ -170,7 +170,7 @@ def getForm(plural, namespace=None):
     clproviders = _k8s_custom.list_cluster_custom_object(API_GROUP, API_VERSION, 'clusterproviders')["items"]
     cltemplates = _k8s_custom.list_cluster_custom_object(API_GROUP, API_VERSION, 'clustermoduletemplates')["items"]
     templates = _k8s_custom.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'moduletemplates')["items"] if namespace != None else []
-    modules = cltemplates = _k8s_custom.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'modules')["items"]
+    modules =  _k8s_custom.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'modules')["items"] if namespace != None else []
     clusterProviders = [k['metadata']["name"] for k in clproviders]
     clusterModuleTemplates  = [k['metadata']["name"] for k in cltemplates]
     moduleTemplates = [k['metadata']["name"] for k in templates]

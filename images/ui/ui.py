@@ -7,6 +7,7 @@ from kubernetes import client
 from kubernetes.client.rest import ApiException
 import yaml
 import utils
+from functools import wraps
 
 try:
     kubernetes.config.load_kube_config()
@@ -137,6 +138,14 @@ def saveKind(plural, method, request, namespace):
 def genToken():
   return ''.join(random.choice(string.ascii_letters) for i in range(16))
 
+def nsexist(function):
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+      if kwargs['namespace'] not in utils.getNamespace():
+        abort(404)
+      return function(**kwargs)
+    return wrapper
+
 @login_manager.user_loader
 def load_user(userid):
   return User(userid)
@@ -178,6 +187,7 @@ def plans():
 
 @app.route('/plans/<namespace>')
 @app.route('/plans/<namespace>/')
+@nsexist
 @login_required
 def plansNamespaced(namespace):
   session["namespace"]=namespace
@@ -195,6 +205,7 @@ def plansNamespaced(namespace):
 
 @app.route('/ansibleplans/<namespace>')
 @app.route('/ansibleplans/<namespace>/')
+@nsexist
 @login_required
 def ansplansNamespaced(namespace):
   session["namespace"]=namespace
@@ -212,6 +223,7 @@ def ansplansNamespaced(namespace):
 
 
 @app.route('/plans/<namespace>/<name>')
+@nsexist
 @login_required
 def plan(namespace, name):
   try:
@@ -232,6 +244,7 @@ def plan(namespace, name):
   return render_template("plan.html",plural='plans', namespace=namespace, plan=plan, css=css, planOutput=planOutput, applyOutput=applyOutput, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
 
 @app.route('/ansibleplans/<namespace>/<name>')
+@nsexist
 @login_required
 def ansplan(namespace, name):
   try:
@@ -288,6 +301,7 @@ def states():
   return redirect(f'/plans/{request.form["name"]}/')
 
 @app.route('/<plural>/<namespace>/_new')
+@nsexist
 @login_required
 def new(plural, namespace):
   if plural not in plurals:
@@ -301,6 +315,7 @@ def new(plural, namespace):
 
 
 @app.route('/<plural>/<namespace>/<name>/edit')
+@nsexist
 @login_required
 def edit(plural, namespace, name):
   obj = utils.getObj(plural, name, namespace=namespace)
@@ -370,6 +385,7 @@ def pluralName(plural, name):
 
 @app.route('/<plural>/<namespace>', methods=['GET', 'POST'])
 @app.route('/<plural>/<namespace>/', methods=['GET', 'POST'])
+@nsexist
 @login_required
 def pluralNamespaced(plural, namespace):
   if plural not in plurals:
@@ -391,6 +407,7 @@ def pluralNamespaced(plural, namespace):
 
 
 @app.route('/<plural>/<namespace>/<name>')
+@nsexist
 @login_required
 def pluralNameNamespaced(plural, namespace, name):
   obj = utils.getObj(plural, name, namespace=namespace)
@@ -421,6 +438,7 @@ def apiPlural(plural):
 
 @app.route('/api/<plural>/<namespace>')
 @app.route('/api/<plural>/<namespace>/')
+@nsexist
 @login_required
 def apiPluralNamespaced(plural, namespace):
   if plural not in plurals:
@@ -450,6 +468,7 @@ attrtypes = [
 ]
 
 @app.route('/api/moduletemplates/<namespace>/<name>/requiredAttributes')
+@nsexist
 @login_required
 def apiModRequiredAttributes(namespace, name):
   try:
@@ -464,6 +483,7 @@ def apiModRequiredAttributes(namespace, name):
   return jsonify(r)
 
 @app.route('/api/moduletemplates/<namespace>/<name>/hattributes')
+@nsexist
 @login_required
 def apiHeritedModAttributes(namespace, name):
   try:
@@ -477,6 +497,7 @@ def apiHeritedModAttributes(namespace, name):
   return jsonify(r)
 
 @app.route('/api/moduletemplates/<namespace>/<name>/attributes')
+@nsexist
 @login_required
 def apiModAttributes(namespace, name):
   try:

@@ -15,7 +15,9 @@
 {% endblock %}
 {% block obj %}{{name}}{% endblock %}
 {% block actions %}
+{% if plural != "planrequests" and plural != "ansibleplanrequests" %}
 <button type="button" class="btn btn-success actionedit">Edit</button>
+{% endif %}
 <button type="button" class="btn btn-danger actiondelete" >Delete</button>
 {% endblock %}
 {% block content %}

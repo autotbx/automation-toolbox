@@ -2,7 +2,7 @@ from flask import Flask, request, render_template, abort, flash, redirect, url_f
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
 from html import escape
 from sys import exit
-import os, json, re, kubernetes
+import os, json, re, kubernetes, random, string
 from kubernetes import client
 from kubernetes.client.rest import ApiException
 import yaml
@@ -104,7 +104,7 @@ def saveKind(plural, method, request, namespace):
   if body == None:
     flash(f'Error occured during saving {kind}/{request.form["name"]} : JSON invalid', 'error')
     return
-  print(f"Saving {plural} : {body}")
+  print(f"Saving {plural} [{current_user.username}]: {body}")
   body['apiVersion'] = f'{API_GROUP}/{API_VERSION}'
   body['kind']= kind
   #version = ""
@@ -134,6 +134,8 @@ def saveKind(plural, method, request, namespace):
     except ApiException as e:
       flash(f'Error occured during saving {kind}/{request.form["name"]} : {e} <br /> body: {body}', 'error')      
 
+def genToken():
+  return ''.join(random.choice(string.ascii_letters) for i in range(16))
 
 @login_manager.user_loader
 def load_user(userid):

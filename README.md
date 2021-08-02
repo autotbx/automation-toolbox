@@ -2,12 +2,12 @@
 
 This is the reposity for the automation-toolbox.
 
-automation-toolbox is is an operator for Kubernetes.
+automation-toolbox is an operator for Kubernetes.
 
 The goal of this operator is to provide Kubernetes CRDs to manage :
 
 * the plan, execution and the state of a terraform project based on external terraform module
-* the plan, execution of a ansible project based on external ansible role
+* the plan, execution of an ansible project based on external ansible role
 
 The idea is to have a simple way to consume a terraform module/ansible roles without advanced terraform/ansible understanding.
 
@@ -17,7 +17,7 @@ Usually, a terraform project is managed by terraform planning/apply operation an
 
 * State
 * Providers
-* Modules (Resources/DataSources/Variables)
+* Modules (Resources/DataSources/Variables/Ansible)
 
 The operator define these same objects/actions by extending Kubernetes API with the following objects:
 
@@ -27,6 +27,8 @@ The operator define these same objects/actions by extending Kubernetes API with 
 * Modules (namespaced)
 * PlanRequests (namespaced)
 * Plans  (namespaced)
+* AnsiblePlanRequests (namespaced)
+* AnsiblePlans (namespaced)
 
 In addition to the previous items, a templating engine is available for the Modules object to avoid to share the attributes between various modules with the following objects:
 
@@ -64,7 +66,7 @@ The operator will manage automatically the Staled plan & Locked state scenario.
 
 ## Environment support
 
-Environment support is a feature that enable the following object to overwrite attributes from the defaultAttributes for the **working environment**:
+Environment support is a feature that enable the following object to overwrite attributes from the defaultAttributes or the ansibleAttributesfor the **working environment**:
 
 * ClusterModuleTemplate
 * ClusterProvider
@@ -113,6 +115,9 @@ spec:
 ```
 
 With this definition, if the ClusterModuleTemplate is used with a state that have the environment attribute to DEV will use the folder_path: 'dst-dev' attributes instead of the defaultAttributes defined previously.
+
+The same logic is apply to the ansibleAttributes definition.
+
 *A Module can also overwrite an attribute*
 
 ## Terraform code generation
@@ -166,6 +171,7 @@ You can use the commands ``` kubectl logs POD-ID -c terraform-gen``` to have the
 ## Ansible code generation
 
 The code is generated from the modules ansibleAttributes key. These attributes take the attributes heritence from the referenced templates.
+Each module that have a *target* ansibleAttributes defined will be added to the inventory/playbook definition.
 
 
 # Objects definitions
@@ -183,6 +189,53 @@ Multiple type of attributes is available:
 |lsValue    | list of string   |
 |lbValue    | list of boolean  |
 |lnValue    | list of number   |
+
+## AnsibleAttributes
+
+| variable | type | required | default | Description |
+|----------|----------|----------|---------|-------|
+|defaultGalaxyServer| string |false |         |Default Galaxy Server for roles|
+|roles| array[string] | false |       |List of roles|
+|dependencies| array[string] | false |       |List of modules dependencies|
+|credentials|object|false||credentials object|
+|credentials.type|string|||type of credentials|
+|credentials.user|string|||user|
+|credentials.password|string|||password|
+|credentials.ssh_key|string|||ssh key|
+
+```
+ansibleAttributes:
+  credentials:
+    type: ssh
+    user: myuser
+    password: mypassword
+  roles:
+  - myrole1
+  vars:
+  - name: myvar
+    sValue: myval
+```
+
+When defining ansibleAttribute on a module, the *targets* attributes is added:
+
+```
+ansibleAttributes:
+  credentials:
+    type: ssh
+    user: myuser
+    password: mypassword
+  roles:
+  - myrole1
+  targets:
+  - fqdn: my.host.local
+    vars:
+     - name: myhostvar
+       sValue: myhostval
+  vars:
+  - name: myvar
+    sValue: myval
+```
+
 
 ## ClusterProviders 
 This object represent a terraform provider at the cluster. Cluster level is used to shared a Providers with multiple namespace.
@@ -528,38 +581,3 @@ When the plan is approved, an `AnsibleRun` is created, first, it will run
 `ansible-playbook` -C and validate that the diff of change from the plan are
 the same. If it's the same, `ansible-playbook` is run.
 
-
-### Modules
-
-To configure ansible in the module, the following args must be used:
-
-```yaml
-apiVersion: terraform.dst.io/v1
-kind: Module
-metadata:
-  name: mymod2
-  label:
-spec:
-  ...
-  ansibleAttributes:
-    defautGalaxyServer: string
-    roles:
-      - exampleRole
-      - otherRole
-    targets:
-      - fqdn: myhost1
-        credentials:
-          login:
-          password:
-          sshkey:
-          type: winrm/ssh
-        vars:
-          override: value
-      - fqdn: myhost2
-
-    vars:
-      abc: def
-      other: value
-    credentials:
-     ...
-```

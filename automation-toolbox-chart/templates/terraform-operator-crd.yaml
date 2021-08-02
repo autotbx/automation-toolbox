@@ -1,0 +1,1425 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clustermoduletemplates.terraform.dst.io
+spec:
+  group: terraform.dst.io
+  names:
+    kind: ClusterModuleTemplate
+    plural: clustermoduletemplates
+    singular: clustermoduletemplate
+    shortNames:
+      - clmodtpls
+      - clmodtpl
+  scope: Cluster
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          required:
+          - spec
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                defaultAttributes:
+                  type: array
+                  items:
+                    type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
+                requiredAttributes:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                    - name
+                    - type
+                    properties:
+                      name:
+                        type: string
+                      type:
+                        type: string
+                        enum:
+                        - iValue
+                        - sValue
+                        - bValue
+                        - nValue
+                        - liValue
+                        - lsValue
+                        - lbValue
+                        - lnValue
+                environments:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                    - name
+                    - defaultAttributes
+                    properties:
+                      name:
+                        type: string
+                      defaultAttributes:
+                        type: array
+                        items:
+                          type: object
+                          oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                          properties:
+                            name: 
+                              type: string
+                            iValue:
+                              type: integer
+                            sValue:
+                              type: string
+                            bValue:
+                              type: boolean
+                            nValue:
+                              type: number
+                            lsValue:
+                              type: array
+                              items:
+                                type: string
+                            liValue:
+                              type: array
+                              items:
+                                type: integer
+                            lbValue:
+                              type: array
+                              items:
+                                type: boolean
+                            lnValue:
+                              type: array
+                              items:
+                                type: number
+                      ansibleAttributes:
+                        type: object
+                        properties:
+                          defaultGalaxyServer:
+                            type: string
+                          roles:
+                            type: array
+                            items:
+                              type: string
+                          dependencies:
+                            type: array
+                            items:
+                              type: string  
+                          credentials:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                              user:
+                                type: string
+                              password:
+                                type: string
+                              ssh_key: 
+                                type: string
+                          vars:
+                            type: array
+                            items:
+                              type: object
+                              oneOf:
+                                - required: ["name", "iValue"]
+                                - required: ["name", "sValue"]
+                                - required: ["name", "bValue"]
+                                - required: ["name", "nValue"]
+                                - required: ["name", "liValue"]
+                                - required: ["name", "lsValue"]
+                                - required: ["name", "lbValue"]
+                                - required: ["name", "lnValue"]
+                              properties:
+                                name:
+                                  type: string
+                                bValue:
+                                  type: boolean
+                                iValue:
+                                  type: integer
+                                nValue:
+                                  type: number
+                                sValue:
+                                  type: string
+                                lbValue:
+                                  type: array
+                                  items:
+                                    type: boolean
+                                liValue:
+                                  type: array
+                                  items:
+                                    type: integer
+                                lnValue:
+                                  type: array
+                                  items:
+                                    type: number
+                                lsValue:
+                                  type: array
+                                  items:
+                                    type: string
+                ansibleAttributes:
+                  type: object
+                  properties:
+                    defaultGalaxyServer:
+                      type: string
+                    roles:
+                      type: array
+                      items:
+                        type: string
+                    dependencies:
+                      type: array
+                      items:
+                        type: string
+                    credentials:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        user:
+                          type: string
+                        password:
+                          type: string
+                        ssh_key: 
+                          type: string
+                    vars:
+                      type: array
+                      items:
+                        type: object
+                        oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                        properties:
+                          name:
+                            type: string
+                          bValue:
+                            type: boolean
+                          iValue:
+                            type: integer
+                          nValue:
+                            type: number
+                          sValue:
+                            type: string
+                          lbValue:
+                            type: array
+                            items:
+                              type: boolean
+                          liValue:
+                            type: array
+                            items:
+                              type: integer
+                          lnValue:
+                            type: array
+                            items:
+                              type: number
+                          lsValue:
+                            type: array
+                            items:
+                              type: string
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: moduletemplates.terraform.dst.io
+spec:
+  group: terraform.dst.io
+  scope: Namespaced
+  names:
+    kind: ModuleTemplate
+    plural: moduletemplates
+    singular: moduletemplate
+    shortNames:
+      - modtpls
+      - modtpl
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          required:
+          - spec
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                defaultAttributes:
+                  type: array
+                  items:
+                    type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
+                requiredAttributes:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                    - name
+                    - type
+                    properties:
+                      name:
+                        type: string
+                      type:
+                        type: string
+                        enum:
+                        - iValue
+                        - sValue
+                        - bValue
+                        - nValue
+                        - liValue
+                        - lsValue
+                        - lbValue
+                        - lnValue
+                ansibleAttributes:
+                  type: object
+                  properties:
+                    defaultGalaxyServer:
+                      type: string
+                    roles:
+                      type: array
+                      items:
+                        type: string
+                    dependencies:
+                      type: array
+                      items:
+                        type: string
+                    credentials:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        user:
+                          type: string
+                        password:
+                          type: string
+                        ssh_key:
+                          type: string
+                    vars:
+                      type: array
+                      items:
+                        type: object
+                        oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                        properties:
+                          name:
+                            type: string
+                          bValue:
+                            type: boolean
+                          iValue:
+                            type: integer
+                          nValue:
+                            type: number
+                          sValue:
+                            type: string
+                          lbValue:
+                            type: array
+                            items:
+                              type: boolean
+                          liValue:
+                            type: array
+                            items:
+                              type: integer
+                          lnValue:
+                            type: array
+                            items:
+                              type: number
+                          lsValue:
+                            type: array
+                            items:
+                              type: string
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: modules.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: Module
+    plural: modules
+    singular: module
+    shortNames:
+      - mods
+      - mod
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.clusterModuleTemplate
+        name: clusterModuleTemplate
+        type: string
+        description: moduleTemplate
+      - jsonPath: .spec.moduleTemplate
+        name: moduleTemplate
+        type: string
+        description: moduleTemplate
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              type: object
+              required:
+              - attributes
+              properties:
+                autoPlanRequest:
+                  type: boolean
+                  default: true
+                attributes:
+                  type: array
+                  items:
+                    type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
+                #todo: mutual exclude tpl
+                clusterModuleTemplate:
+                  type: string
+                moduleTemplate:
+                  type: string
+                ansibleAttributes:
+                  type: object
+                  properties:
+                    defaultGalaxyServer:
+                      type: string
+                    targets:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - fqdn
+                        properties:
+                          fqdn:
+                            type: string
+                          credentials:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                              user:
+                                type: string
+                              password:
+                                type: string
+                              ssh_key:
+                                type: string
+                          vars:
+                            type: array
+                            items:
+                              type: object
+                              oneOf:
+                                - required: ["name", "iValue"]
+                                - required: ["name", "sValue"]
+                                - required: ["name", "bValue"]
+                                - required: ["name", "nValue"]
+                                - required: ["name", "liValue"]
+                                - required: ["name", "lsValue"]
+                                - required: ["name", "lbValue"]
+                                - required: ["name", "lnValue"]
+                              properties:
+                                name:
+                                  type: string
+                                bValue:
+                                  type: boolean
+                                iValue:
+                                  type: integer
+                                nValue:
+                                  type: number
+                                sValue:
+                                  type: string
+                                lbValue:
+                                  type: array
+                                  items:
+                                    type: boolean
+                                liValue:
+                                  type: array
+                                  items:
+                                    type: integer
+                                lnValue:
+                                  type: array
+                                  items:
+                                    type: number
+                                lsValue:
+                                  type: array
+                                  items:
+                                    type: string
+                    roles:
+                      type: array
+                      items:
+                        type: string
+                    dependencies:
+                      type: array
+                      items:
+                        type: string
+                    credentials:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        user:
+                          type: string
+                        password:
+                          type: string
+                        ssh_key:
+                          type: string
+                    vars:
+                      type: array
+                      items:
+                        type: object
+                        oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                        properties:
+                          name:
+                            type: string
+                          bValue:
+                            type: boolean
+                          iValue:
+                            type: integer
+                          nValue:
+                            type: number
+                          sValue:
+                            type: string
+                          lbValue:
+                            type: array
+                            items:
+                              type: boolean
+                          liValue:
+                            type: array
+                            items:
+                              type: integer
+                          lnValue:
+                            type: array
+                            items:
+                              type: number
+                          lsValue:
+                            type: array
+                            items:
+                              type: string
+                outputs:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                       name:
+                         type: string
+                       value:
+                         type: string
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterproviders.terraform.dst.io
+spec:
+  scope: Cluster
+  group: terraform.dst.io
+  names:
+    kind: ClusterProvider
+    plural: clusterproviders
+    singular: clusterprovider
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.autoPlanRequest
+        name: autoPlanRequest
+        type: string
+        description: autoPlanRequest
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              required:
+              - type
+              type: object
+              properties:
+                type:
+                  type: string
+                attributes:
+                  type: array
+                  items:
+                    type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
+                environments:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                    - name
+                    - attributes
+                    properties:
+                      name:
+                        type: string
+                      attributes:
+                        type: array
+                        items:
+                          type: object
+                          oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                          properties:
+                            name: 
+                              type: string
+                            iValue:
+                              type: integer
+                            sValue:
+                              type: string
+                            bValue:
+                              type: boolean
+                            nValue:
+                              type: number
+                            lsValue:
+                              type: array
+                              items:
+                                type: string
+                            liValue:
+                              type: array
+                              items:
+                                type: integer
+                            lbValue:
+                              type: array
+                              items:
+                                type: boolean
+                            lnValue:
+                              type: array
+                              items:
+                                type: number
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: providers.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: Provider
+    plural: providers
+    singular: provider
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              required:
+              - type
+              type: object
+              properties:
+                autoPlanRequest:
+                  type: boolean
+                type:
+                  type: string
+                attributes:
+                  type: array
+                  items:
+                    type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: planrequests.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: PlanRequest
+    plural: planrequests
+    singular: planrequest
+    shortNames:
+      - prs
+      - pr
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.deletePlanOnDeleted
+        name: deletePlanOnDeleted
+        type: string
+        description: deletePlanOnDeleted
+      - jsonPath: .status.plans
+        name: plans
+        type: string
+        description: Associated plans
+      - jsonPath: .spec.targets
+        name: targets
+        type: string
+        description: Targets
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              type: object
+              properties:
+                deletePlanOnDeleted:
+                  type: boolean
+                  default: false
+                targets:
+                  type: array
+                  items:
+                    type: string
+            status:
+              type: object
+              properties:
+                plans:
+                  type: array
+                  items:
+                    type: string
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: states.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: State
+    plural: states
+    singular: state
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.autoPlanApprove
+        name: autoPlanApprove
+        type: string
+        description: autoPlanApprove
+      - jsonPath: .spec.autoPlanRequest
+        name: autoPlanRequest
+        type: string
+        description: autoPlanRequest
+      - jsonPath: .spec.deleteJobsOnPlanDeleted
+        name: deleteJobsOnPlanDeleted
+        type: string
+        description: deleteJobsOnPlanDeleted
+      - jsonPath: .spec.deletePlansOnPlanDeleted
+        name: deletePlansOnPlanDeleted
+        type: string
+        description: deletePlansOnPlanDeleted
+      - jsonPath: .spec.clusterProviders
+        name: clusterProviders
+        type: string
+        description: Clusters Providers
+      - jsonPath: .spec.environment
+        name: environment
+        type: string
+        description: Environment
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              required:
+              - autoPlanApprove
+              - autoPlanRequest
+              - deleteJobsOnPlanDeleted
+              type: object
+              properties:
+                customTerraformInit:
+                  type: string
+                clusterProviders:
+                  type: array
+                  items:
+                    type: string
+                environment:
+                  type: string
+                trustedCA:
+                  type: string
+                  default: ""
+                autoPlanApprove:
+                  type: boolean
+                autoPlanRequest:
+                  type: boolean
+                deleteJobsOnPlanDeleted:
+                  type: boolean
+                tfGeneratorImage:
+                  type: string
+                  default: "{{ .Values.terraformGen.image }}:{{ .Values.terraformGen.tag | default .Chart.AppVersion }}"
+                tfExecutorImage:
+                  type: string
+                  default: "{{ .Values.terraform.image }}:{{ .Values.terraform.tag | default .Chart.AppVersion }}"
+                tfGeneratorImagePullPolicy:
+                  type: string
+                  enum:
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: "{{ .Values.terraformGen.pullPolicy }}"
+                tfExecutorImagePullPolicy:
+                  type: string
+                  enum: 
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: "{{ .Values.terraform.pullPolicy }}"
+                ansibleGeneratorImage:
+                  type: string
+                  default: "{{ .Values.ansibleGen.image }}:{{ .Values.ansibleGen.tag | default .Chart.AppVersion }}"
+                ansibleExecutorImage:
+                  type: string
+                  default: "{{ .Values.ansible.image }}:{{ .Values.ansible.tag | default .Chart.AppVersion }}"
+                ansibleGeneratorImagePullPolicy:
+                  type: string
+                  enum:
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: "{{ .Values.ansibleGen.pullPolicy }}"
+                ansibleExecutorImagePullPolicy:
+                  type: string
+                  enum: 
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: "{{ .Values.ansible.pullPolicy }}"
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: plans.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: Plan
+    plural: plans
+    singular: plan
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.state
+        name: state
+        type: string
+        description: State
+      - jsonPath: .spec.approved
+        description: Approved
+        name: approved
+        type: boolean
+      - jsonPath: .status.planStatus
+        description: Plan Status
+        name: planStatus
+        type: string
+      - jsonPath: .status.planStartTime
+        description: Plan Start Time
+        name: planStartTime
+        type: string 
+      - jsonPath: .status.planCompleteTime
+        description: Plan Complete Time
+        name: planCompleteTime
+        type: string 
+      - jsonPath: .status.applyStatus
+        description: Apply Status
+        name: applyStatus
+        type: string  
+      - jsonPath: .status.applyStartTime
+        description: Apply Start Time
+        name: applyStartTime
+        type: string 
+      - jsonPath: .status.applyCompleteTime
+        description: Apply Complete Time
+        name: applyCompleteTime
+        type: string 
+      - jsonPath: .spec.targets
+        name: targets
+        type: string
+        description: Targets
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              required:
+              - approved
+              - deleteJobsOnDeleted
+              - state
+              type: object
+              properties:
+                approved:
+                  type: boolean
+                targets:
+                  type: array
+                  items:
+                    type: string
+                #exists?
+                state:
+                  type: string
+                deleteJobsOnDeleted:
+                  type: boolean
+                tfGeneratorImage:
+                  type: string
+                  default: "{{ .Values.terraformGen.image }}:{{ .Values.terraformGen.tag | default .Chart.AppVersion }}"
+                tfExecutorImage:
+                  type: string
+                  default: "{{ .Values.terraform.image }}:{{ .Values.terraform.tag | default .Chart.AppVersion }}"
+                tfGeneratorImagePullPolicy:
+                  type: string
+                  enum:
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: "{{ .Values.terraformGen.pullPolicy }}"
+                tfExecutorImagePullPolicy:
+                  type: string
+                  enum: 
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: "{{ .Values.terraform.pullPolicy }}"
+                originalPlan:
+                  type: string
+            status:
+              type: object
+              properties:
+                planStatus:
+                  type: string
+                  default: "Requested"
+                  enum:
+                  - Active
+                  - Requested
+                  - Failed
+                  - Completed
+                planOutput:
+                  type: string
+                planJob:
+                  type: string
+                  default: ""
+                planStartTime:
+                  type: string
+                  default: "Not yet started"
+                planCompleteTime:
+                  type: string
+                  default: "Not yet completed"
+                applyStatus:
+                  type: string
+                  default: "Pending"
+                  enum:
+                  - Active
+                  - Requested
+                  - Failed
+                  - Completed
+                  - Pending
+                applyOutput:
+                    type: string
+                applyStartTime:
+                  type: string
+                  default: "Not yet started"
+                applyCompleteTime:
+                  type: string
+                  default: "Not yet completed"
+                applyJob:
+                  type: string
+                  default: ""
+                applyConditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      lastProbeTime:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                planConditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      lastProbeTime:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                AnsiblePlan:
+                  type: string
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ansibleplans.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: AnsiblePlan
+    plural: ansibleplans
+    singular: ansibleplan
+    shortNames:
+      - aplans
+      - aplan
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.approved
+        description: Approved
+        name: approved
+        type: boolean
+      - jsonPath: .status.planStatus
+        description: Plan Status
+        name: planStatus
+        type: string
+      - jsonPath: .status.planStartTime
+        description: Plan Start Time
+        name: planStartTime
+        type: string 
+      - jsonPath: .status.planCompleteTime
+        description: Plan Complete Time
+        name: planCompleteTime
+        type: string 
+      - jsonPath: .status.applyStatus
+        description: Apply Status
+        name: applyStatus
+        type: string  
+      - jsonPath: .status.applyStartTime
+        description: Apply Start Time
+        name: applyStartTime
+        type: string 
+      - jsonPath: .status.applyCompleteTime
+        description: Apply Complete Time
+        name: applyCompleteTime
+        type: string
+      - jsonPath: .spec.targets
+        name: targets
+        description: Targets
+        type: string
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              type: object
+              properties:
+                approved:
+                  type: boolean
+                  default: false
+                targets:
+                  type: array
+                  items:
+                    type: string
+                deleteJobsOnDeleted:
+                  type: boolean
+                  default: false
+                ansibleGeneratorImage:
+                  type: string
+                  default: "{{ .Values.ansibleGen.image }}:{{ .Values.ansibleGen.tag | default .Chart.AppVersion }}"
+                ansibleExecutorImage:
+                  type: string
+                  default: "{{ .Values.ansible.image }}:{{ .Values.ansible.tag | default .Chart.AppVersion }}"
+                ansibleGeneratorImagePullPolicy:
+                  type: string
+                  enum:
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: "{{ .Values.ansibleGen.pullPolicy }}"
+                ansibleExecutorImagePullPolicy:
+                  type: string
+                  enum: 
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: "{{ .Values.ansible.pullPolicy }}"
+            status:
+              type: object
+              properties:
+                planStatus:
+                  type: string
+                  default: "Requested"
+                  enum:
+                  - Active
+                  - Requested
+                  - Failed
+                  - Completed
+                planOutput:
+                  type: string
+                planJob:
+                  type: string
+                  default: ""
+                planStartTime:
+                  type: string
+                  default: "Not yet started"
+                planCompleteTime:
+                  type: string
+                  default: "Not yet completed"
+                applyStatus:
+                  type: string
+                  default: "Pending"
+                  enum:
+                  - Active
+                  - Requested
+                  - Failed
+                  - Completed
+                  - Pending
+                applyOutput:
+                    type: string
+                applyStartTime:
+                  type: string
+                  default: "Not yet started"
+                applyCompleteTime:
+                  type: string
+                  default: "Not yet completed"
+                applyJob:
+                  type: string
+                  default: ""
+                applyConditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      lastProbeTime:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                planConditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      lastProbeTime:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ansibleplanrequests.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: AnsiblePlanRequest
+    plural: ansibleplanrequests
+    singular: ansibleplanrequest
+    shortNames:
+      - aprs
+      - apr
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.deletePlanOnDeleted
+        name: deletePlanOnDeleted
+        type: string
+        description: deletePlanOnDeleted
+      - jsonPath: .status.plans
+        name: plans
+        type: string
+        description: Associated plans
+      - jsonPath: .spec.targets
+        name: targets
+        type: string
+        description: Targets
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              type: object
+              properties:
+                targets:
+                  type: array
+                  items:
+                    type: string
+                deletePlanOnDeleted:
+                  type: boolean
+                  default: false
+            status:
+              type: object
+              properties:
+                plans:
+                  type: array
+                  items:
+                    type: string

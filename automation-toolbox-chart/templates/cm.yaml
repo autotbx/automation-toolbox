@@ -1,0 +1,11 @@
+{{- if  .Values.ui.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ui-users
+  annotations:
+    checksum/users: {{ .Values.ui.users | toJson | sha256sum }}
+data:
+  users.json: |
+    {{ .Values.ui.users | toJson }}
+{{- end }}

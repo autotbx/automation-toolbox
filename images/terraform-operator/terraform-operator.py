@@ -292,7 +292,7 @@ def applyStatus(diff, status, namespace, logger, body, **kwargs):
     logger.info(f'{body["kind"]} {body.metadata["name"]} applying completed')
     log = get_pod_log(logger, namespace, body.status['applyJob'])
     updateCustomStatus(logger ,plural, namespace, body.metadata.name, {'applyOutput' : log})
-    if body['kind'] == "Plan":
+    if body['kind'] == "Plan" and not body['metadata']['name'].startswith('delete-mod-'):
       module_names = []
       for target in body["spec"]["targets"] if "targets" in body['spec'] else []:
         module_name = target

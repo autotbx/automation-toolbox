@@ -42,13 +42,13 @@ Module is also used for ansible configuration
 At the moment, one Kubernetes namespace represent a terraform project that use the same terraform state.
 These objects can be represented like this:
 
-![terraform-operator-k8s-view](https://github.com/dstoffel/terraform-operator/blob/master/docs/images/terraform-operator-k8s-view.png?raw=true)
+![terraform-operator-k8s-view](docs/images/terraform-operator-k8s-view.png?raw=true)
 
 # Terraform global execution workflow
 
 The workflow can be represented as : 
 
-![terraform-op-workflow](https://github.com/dstoffel/terraform-operator/blob/master/docs/images/terraform-op-workflow.png?raw=true)
+![terraform-op-workflow](docs/images/terraform-op-workflow.png?raw=true)
 
 ## Stale plan / Locked state
 
@@ -505,79 +505,6 @@ Plan is the equivalent of the terraform/ansible plan/apply. You should create th
 
 
 
-## Ansible
+## Terraform <-> Ansible technical worklflow
 
-TODO
-
-Ansible runs are launched when a Terraform run is finished or manually when  a user request it
-
-```
-      +---+
-      |   |
-      |   |                        +---------------+
-      +-+-+                        |               |
-        |                          | TerraformRun  |
-        |  User                    |               |
-        |                          +-------+-------+
-        |                                  |
-        |                                  |
-     +--+--+                               |
-     |     |                               |
-     +  +  +                               |
-        |                                  |
-        |                                  |
-        |                                  |
-        |                                  v
-        v
-                                     AnsiblePlan   +
-AnsibleRunRequest  +-------------->                |
-                                         auto:     |
-  ansiblePlan:
-   -
-   -                                        hosts:  +----> ansible-playbook -C
-                                             -
-                                             -
-                                            terraformPlan: 
-                                         approved
-                                         executionDate
-                                         hostImpacted
-                                         diff
-                                         status
-                                         ansibleRunRequest: 
-                                         +
-                                         |
-                                         v
-
-                                     AnsibleRun
-                                                  +
-                                      ansiblePlan |
-                                                  +-----> ansible-playbook -C
-                                                             +
-                                     executionDate
-                                     hostImpacted
-                                     diff
-                                     status
-                                                  <----------+
-
-                                                  +-----> ansible-playbook
-```
-
-The workflow is the following:
-
-When a Terraform apply is finished, a AnsiblePlan is created with the `auto`
-parameter, which contains the list of hosts impacted by Ansible (copied from
-the `ansibleArgs.hosts` from the module). `ansible-playbook -C` is run on all
-playbook, the output is parsed and the hosts impacted by the run are
-analysed. Only if `auto.hosts` is equal to `hostImpacted` is equal, the
-`ansible-plan is auto-approved.
-
-If a user create an `AnsibleRunRequest` the plan is created (without the
-`auto` parameter), a check is run and the plan must be manually approved to
-generate an `Ansiblerun `.
-
-If no changes are detected, the plan will not generate a run.
-
-When the plan is approved, an `AnsibleRun` is created, first, it will run
-`ansible-playbook` -C and validate that the diff of change from the plan are
-the same. If it's the same, `ansible-playbook` is run.
-
+![tf-ans-workflow](docs/images/tf-ans-workflow.png?raw=true)

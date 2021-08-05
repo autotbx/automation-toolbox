@@ -249,7 +249,7 @@ def planStatus(diff, status, namespace, logger, body, **kwargs):
         job(logger, body.metadata["name"], namespace, body, 'terraform' if body['kind'] == "Plan" else "ansible", 'apply')
     else:
       if body["kind"] == "Plan":
-        if "No changes. Infrastructure is up-to-date." in log:
+        if "Your infrastructure matches the configuration." in log:
           logger.info(f"Plan {body.metadata.name} produces an up-to-date plan, autoApproving")
           custom_api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', body.metadata.name, {'spec': {'approved': True}})
         else:

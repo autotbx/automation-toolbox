@@ -22,7 +22,7 @@ api_instance = client.CustomObjectsApi()
 API_GROUP = 'terraform.dst.io'
 API_VERSION = 'v1'
 ANSIBLE_ATTRIBUTES = 'ansibleAttributes'
-ATTRIBUTE_TYPE = ['iValue', 'nValue', 'sValue', 'bValue', 'liValue', 'lfValue', 'lsValue', 'lbValue']
+ATTRIBUTE_TYPE = ['iValue', 'nValue', 'sValue', 'bValue', 'liValue', 'lnValue', 'lsValue', 'lbValue']
 
 class AnsibleCredentials:
     def __init__(self, login = None, password = None, sshkey = None, con_type = "ssh", winrm_server_cert_validation = "ignore"):

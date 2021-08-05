@@ -42,6 +42,7 @@ class AnsibleCredentials:
         vars["ansible_connection"] = self._con_type
         if self._con_type == "winrm":
             vars["ansible_winrm_server_cert_validation"] = self._winrm_server_cert_validation
+            vars["ansible_winrm_transport"] = "ntlm"
         return vars
         
 

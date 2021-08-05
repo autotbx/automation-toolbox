@@ -970,6 +970,8 @@ spec:
               properties:
                 customTerraformInit:
                   type: string
+                terraformOption:
+                  type: string
                 clusterProviders:
                   type: array
                   items:

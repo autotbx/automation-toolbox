@@ -687,6 +687,11 @@ def getForm(plural, namespace=None):
         "name": "Custom Terraform Init",
         },
         {
+        "id": "terraformOption",
+        "type": "string",
+        "name": "Terraform option",
+        },
+        {
         "id": "tfExecutorImage",
         "type": "string",
         "name": "TF Executor Image",
@@ -768,7 +773,8 @@ def updateFieldsValues(form, plural, obj):
     form = updateFieldsValue(form, "spec", "ansibleGeneratorImagePullPolicy", "value", obj['spec']['ansibleGeneratorImagePullPolicy'])
     form = updateFieldsValue(form, "spec", "clusterProviders", "values", obj['spec']['clusterProviders'] if "clusterProviders" in obj["spec"] else [])
     form = updateFieldsValue(form, "spec", "environment", "value", obj['spec']['environment'] if 'environment' in obj["spec"] else [])
-    form = updateFieldsValue(form, "spec", "trustedCA", "value", obj['spec']['trustedCA'])
+    form = updateFieldsValue(form, "spec", "trustedCA", "value", obj['spec']['trustedCA'] if "trustedCA" in obj["spec"] else "")
+    form = updateFieldsValue(form, "spec", "terraformOption", "value", obj['spec']['terraformOption'] if "terraformOption" in obj["spec"] else "")
   elif plural == "providers" or plural == "clusterproviders":
     form = updateFieldsValue(form, "spec", "name", "value", obj['metadata']['name'])
     form = updateFieldsValue(form, "spec", "name", "disabled", True)

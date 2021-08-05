@@ -60,6 +60,7 @@ def updateCustomStatus(logger, plural, namespace, name, vals):
 
 def createJob(namespace, name, jobtype, action, obj):
   update_trust_ca = "kubectl get states "+namespace+" -n "+namespace+"  -o=jsonpath='{.spec.trustedCA}' > /usr/local/share/ca-certificates/local.crt ; update-ca-certificates ; "
+  tf_option = "$(kubectl get states "+namespace+" -n "+namespace+"  -o=jsonpath='{.spec.terraformOption}')"
   if jobtype == "terraform":
     container_name = "terraform"
     init_container_name = "terraform-gen"
@@ -81,9 +82,9 @@ def createJob(namespace, name, jobtype, action, obj):
     if action == "destroy":
       run_args = ["echo DESTROYYY"]
     elif action == "apply":
-      run_args = [update_trust_ca + "kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; mkdir /tmp/empty; cd /tf; terraform init; terraform apply /tmp/plan;"]
+      run_args = [update_trust_ca + "kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; mkdir /tmp/empty; cd /tf; terraform init; terraform "+{tf_option}+" apply /tmp/plan;"]
     elif action == "plan":
-      run_args = [update_trust_ca + "mkdir /tmp/empty; cd /tf;  terraform init && terraform plan $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
+      run_args = [update_trust_ca + "mkdir /tmp/empty; cd /tf;  terraform init && terraform "+{tf_option}+" plan $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
   elif jobtype == "ansible":
     container_name = "ansible"
     init_container_name = "ansible-gen"

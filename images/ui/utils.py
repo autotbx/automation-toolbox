@@ -683,7 +683,7 @@ def getForm(plural, namespace=None):
         },
         {
         "id": "customTerraformInit",
-        "type": "string",
+        "type": "textarea",
         "name": "Custom Terraform Init",
         },
         {

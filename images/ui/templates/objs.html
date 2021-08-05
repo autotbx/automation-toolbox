@@ -14,7 +14,7 @@
 {% block obj %}{{objs}}{% endblock %}
 {% block actions %}
 
-{% if  namespace %}
+{% if namespace or plural.startswith('cluster') %}
   <button type="button" class="btn btn-success actioncreate">Create</button>
 {% endif %}
 {% endblock %}

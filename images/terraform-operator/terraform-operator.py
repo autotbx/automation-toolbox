@@ -82,9 +82,9 @@ def createJob(namespace, name, jobtype, action, obj):
     if action == "destroy":
       run_args = ["echo DESTROYYY"]
     elif action == "apply":
-      run_args = [update_trust_ca + "kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; mkdir /tmp/empty; cd /tf; terraform init; terraform "+{tf_option}+" apply /tmp/plan;"]
+      run_args = [update_trust_ca + "kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; mkdir /tmp/empty; cd /tf; terraform init; terraform "+tf_option+" apply /tmp/plan;"]
     elif action == "plan":
-      run_args = [update_trust_ca + "mkdir /tmp/empty; cd /tf;  terraform init && terraform "+{tf_option}+" plan $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
+      run_args = [update_trust_ca + "mkdir /tmp/empty; cd /tf;  terraform init && terraform "+tf_option+" plan $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
   elif jobtype == "ansible":
     container_name = "ansible"
     init_container_name = "ansible-gen"

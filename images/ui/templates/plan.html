@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block customcss %}{{css}}{% endblock %}
+{% block title %}Plans{% endblock %}
+{% block nav %}
+<a href="/plans/">Plans</a> <span data-feather="chevron-right"></span>
+<a href="/plans/{{namespace}}/">{{namespace}}</a> <span data-feather="chevron-right"></span>
+ {% if plan == None %} Not Found {% else %} {{ plan['metadata']['name'] }}{%endif%}
+{% endblock %}
+{% block obj %}{% if plan != None %}{{ plan['metadata']['name'] }}{%endif%}{% endblock %}
+{% block content %}
+
+{% if plan != None %}
+<div class="container">
+    <div class="row">
+      <div class="col cust">
+        <h4><span class="blue">Specifications</span></h4>
+        {% for k in plan['spec'] %}
+        <div class="container">
+            <div class="row">
+              <div class="col">
+                <strong>{{k}}</strong>
+              </div>
+              <div class="col-7">
+                <span class="blue">
+                {{ plan['spec'][k]|yaml|safe  }}
+                </span>
+              </div>
+            </div>
+        </div>
+        {% endfor %}
+
+      </div>
+      <div class="col cust" style="margin-left: 15px;">
+        <h4><span class="blue">Status</span></h4>
+        {% for k in plan['status'] %}
+            {% if k != "planConditions" and k != 'planOutput' and k != 'applyOutput' %}
+            {% if plan['status'][k] != "" %}
+            <strong>{{k}}</strong> : <span class="blue">{{plan['status'][k]}}</span>
+            <br />
+            {% endif %}
+            {% endif %}
+        {% endfor %}
+       </div> 
+    </div>
+</div>
+<br />
+{% if planOutput != "" %}
+<div class="container">
+    <div class="row cust">
+        <div class="col">
+            <h4><span class="blue">Plan Output</span>&nbsp;<span id="plantoggle" style="cursor: pointer; width: 24px; height: 24px;" data-feather="chevrons-right"></span></h4>
+            <div id="planoutput" class="tfoutput">  
+                {{ planOutput | safe}}
+                {% if not plan['spec']['approved'] %}/>
+                    {% if plan['status']['planStatus'] != "Failed" %}
+                    <button  id="approve" class="btn btn-secondary btn-lg btn-block">Approve this plan</button>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% if applyOutput != "" %}
+<div class="container">
+    <div class="row cust">
+        <div class="col">
+            <h4><span class="blue">Apply Output</span>&nbsp;<span id="applytoggle" style="cursor: pointer; width: 24px; height: 24px;" data-feather="chevrons-right"></span></h4>
+            <div id="applyoutput" class="tfoutput"> 
+                {{ applyOutput | safe }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+{% endblock %}
+
+{% block last %}
+{% if plan != None %}
+<script>
+
+$(document).ready(function() {
+    $( "#plantoggle" ).click(function() {
+        $('#planoutput').toggle()
+    });
+    $( "#applytoggle" ).click(function() {
+        $('#applyoutput').toggle()
+    });
+    $( "#approve").click(function() {
+        if (confirm('Are you sure to approve this plan ?')) {
+            location.href = "/{{plural}}/{{namespace}}/?name={{plan['metadata']['name']}}&approve=true";
+        }
+    });
+});
+</script>
+{% endif %}
+
+{% endblock %}

@@ -2,3 +2,7 @@ __pycache__/
 working-examples/
 tf/
 ui/__pycache__/
+venv
+.git.old
+.vscode
+images/ansible-operator

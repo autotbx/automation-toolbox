@@ -1,0 +1,66 @@
+name: CI
+on:
+  #push:
+  #  branches: [ dst-op ]
+    #  pull_request:
+    #    branches: [ master ]
+  create:
+jobs:
+  build:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: login
+        uses: docker/login-action@v1 
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Set Tag
+        id: gen_tags
+        run: |
+          if [[ $GITHUB_REF == 'refs/tags/'* ]]; then
+            TAGS=${GITHUB_REF/refs\/tags\//}
+          else
+            TAGS="latest"
+          fi
+          echo '::set-output name=tags::'$TAGS
+      - name: Terraform - Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: images/terraform/
+          push: true
+          tags: dstoffel/terraform:${{ steps.gen_tags.outputs.tags }}
+      - name: Terraform-gen - Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: images/terraform-gen/
+          push: true
+          tags: dstoffel/terraform-gen:${{ steps.gen_tags.outputs.tags }}
+      - name: Ansible - Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: images/ansible/
+          push: true
+          tags: dstoffel/ansible:${{ steps.gen_tags.outputs.tags }}
+      - name: Ansible-gen - Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: images/ansible-gen/
+          push: true
+          tags: dstoffel/ansible-gen:${{ steps.gen_tags.outputs.tags }}
+      - name: terraform-operator - Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: images/terraform-operator/
+          push: true
+          tags: dstoffel/terraform-operator:${{ steps.gen_tags.outputs.tags }}
+      - name: ui - Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: images/ui/
+          push: true
+          tags: dstoffel/ui:${{ steps.gen_tags.outputs.tags }}
+
+
+     

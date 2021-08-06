@@ -27,22 +27,244 @@ spec:
               type: object
               properties:
                 defaultAttributes:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
+                  type: array
+                  items:
+                    type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
                 requiredAttributes:
                   type: array
                   items:
-                    type: string
+                    type: object
+                    required:
+                    - name
+                    - type
+                    properties:
+                      name:
+                        type: string
+                      type:
+                        type: string
+                        enum:
+                        - iValue
+                        - sValue
+                        - bValue
+                        - nValue
+                        - liValue
+                        - lsValue
+                        - lbValue
+                        - lnValue
                 environments:
                   type: array
                   items:
                     type: object
+                    required:
+                    - name
+                    - defaultAttributes
                     properties:
                       name:
                         type: string
                       defaultAttributes:
+                        type: array
+                        items:
+                          type: object
+                          oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                          properties:
+                            name: 
+                              type: string
+                            iValue:
+                              type: integer
+                            sValue:
+                              type: string
+                            bValue:
+                              type: boolean
+                            nValue:
+                              type: number
+                            lsValue:
+                              type: array
+                              items:
+                                type: string
+                            liValue:
+                              type: array
+                              items:
+                                type: integer
+                            lbValue:
+                              type: array
+                              items:
+                                type: boolean
+                            lnValue:
+                              type: array
+                              items:
+                                type: number
+                      ansibleAttributes:
                         type: object
-                        x-kubernetes-preserve-unknown-fields: true
+                        properties:
+                          defaultGalaxyServer:
+                            type: string
+                          roles:
+                            type: array
+                            items:
+                              type: string
+                          dependencies:
+                            type: array
+                            items:
+                              type: string  
+                          credentials:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                              user:
+                                type: string
+                              password:
+                                type: string
+                              ssh_key: 
+                                type: string
+                          vars:
+                            type: array
+                            items:
+                              type: object
+                              oneOf:
+                                - required: ["name", "iValue"]
+                                - required: ["name", "sValue"]
+                                - required: ["name", "bValue"]
+                                - required: ["name", "nValue"]
+                                - required: ["name", "liValue"]
+                                - required: ["name", "lsValue"]
+                                - required: ["name", "lbValue"]
+                                - required: ["name", "lnValue"]
+                              properties:
+                                name:
+                                  type: string
+                                bValue:
+                                  type: boolean
+                                iValue:
+                                  type: integer
+                                nValue:
+                                  type: number
+                                sValue:
+                                  type: string
+                                lbValue:
+                                  type: array
+                                  items:
+                                    type: boolean
+                                liValue:
+                                  type: array
+                                  items:
+                                    type: integer
+                                lnValue:
+                                  type: array
+                                  items:
+                                    type: number
+                                lsValue:
+                                  type: array
+                                  items:
+                                    type: string
+                ansibleAttributes:
+                  type: object
+                  properties:
+                    defaultGalaxyServer:
+                      type: string
+                    roles:
+                      type: array
+                      items:
+                        type: string
+                    dependencies:
+                      type: array
+                      items:
+                        type: string
+                    credentials:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        user:
+                          type: string
+                        password:
+                          type: string
+                        ssh_key: 
+                          type: string
+                    vars:
+                      type: array
+                      items:
+                        type: object
+                        oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                        properties:
+                          name:
+                            type: string
+                          bValue:
+                            type: boolean
+                          iValue:
+                            type: integer
+                          nValue:
+                            type: number
+                          sValue:
+                            type: string
+                          lbValue:
+                            type: array
+                            items:
+                              type: boolean
+                          liValue:
+                            type: array
+                            items:
+                              type: integer
+                          lnValue:
+                            type: array
+                            items:
+                              type: number
+                          lsValue:
+                            type: array
+                            items:
+                              type: string
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -72,22 +294,130 @@ spec:
               type: object
               properties:
                 defaultAttributes:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
-                requiredAttributes:
-                  type: array
-                  items:
-                    type: string
-                environments:
                   type: array
                   items:
                     type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
+                requiredAttributes:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                    - name
+                    - type
                     properties:
                       name:
                         type: string
-                      defaultAttributes:
+                      type:
+                        type: string
+                        enum:
+                        - iValue
+                        - sValue
+                        - bValue
+                        - nValue
+                        - liValue
+                        - lsValue
+                        - lbValue
+                        - lnValue
+                ansibleAttributes:
+                  type: object
+                  properties:
+                    defaultGalaxyServer:
+                      type: string
+                    roles:
+                      type: array
+                      items:
+                        type: string
+                    dependencies:
+                      type: array
+                      items:
+                        type: string
+                    credentials:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        user:
+                          type: string
+                        password:
+                          type: string
+                        ssh_key:
+                          type: string
+                    vars:
+                      type: array
+                      items:
                         type: object
-                        x-kubernetes-preserve-unknown-fields: true
+                        oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                        properties:
+                          name:
+                            type: string
+                          bValue:
+                            type: boolean
+                          iValue:
+                            type: integer
+                          nValue:
+                            type: number
+                          sValue:
+                            type: string
+                          lbValue:
+                            type: array
+                            items:
+                              type: boolean
+                          liValue:
+                            type: array
+                            items:
+                              type: integer
+                          lnValue:
+                            type: array
+                            items:
+                              type: number
+                          lsValue:
+                            type: array
+                            items:
+                              type: string
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -121,7 +451,6 @@ spec:
       - jsonPath: .metadata.creationTimestamp
         name: age
         type: date
-      
       schema:
         openAPIV3Schema:
           type: object
@@ -129,31 +458,191 @@ spec:
           - spec
           properties:
             spec:
+              type: object
               required:
               - attributes
-              type: object
               properties:
                 autoPlanRequest:
                   type: boolean
                   default: true
                 attributes:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
+                  type: array
+                  items:
+                    type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
                 #todo: mutual exclude tpl
                 clusterModuleTemplate:
                   type: string
                 moduleTemplate:
                   type: string
+                ansibleAttributes:
+                  type: object
+                  properties:
+                    defaultGalaxyServer:
+                      type: string
+                    targets:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - fqdn
+                        properties:
+                          fqdn:
+                            type: string
+                          credentials:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                              user:
+                                type: string
+                              password:
+                                type: string
+                              ssh_key:
+                                type: string
+                          vars:
+                            type: array
+                            items:
+                              type: object
+                              oneOf:
+                                - required: ["name", "iValue"]
+                                - required: ["name", "sValue"]
+                                - required: ["name", "bValue"]
+                                - required: ["name", "nValue"]
+                                - required: ["name", "liValue"]
+                                - required: ["name", "lsValue"]
+                                - required: ["name", "lbValue"]
+                                - required: ["name", "lnValue"]
+                              properties:
+                                name:
+                                  type: string
+                                bValue:
+                                  type: boolean
+                                iValue:
+                                  type: integer
+                                nValue:
+                                  type: number
+                                sValue:
+                                  type: string
+                                lbValue:
+                                  type: array
+                                  items:
+                                    type: boolean
+                                liValue:
+                                  type: array
+                                  items:
+                                    type: integer
+                                lnValue:
+                                  type: array
+                                  items:
+                                    type: number
+                                lsValue:
+                                  type: array
+                                  items:
+                                    type: string
+                    roles:
+                      type: array
+                      items:
+                        type: string
+                    dependencies:
+                      type: array
+                      items:
+                        type: string
+                    credentials:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                        user:
+                          type: string
+                        password:
+                          type: string
+                        ssh_key:
+                          type: string
+                    vars:
+                      type: array
+                      items:
+                        type: object
+                        oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                        properties:
+                          name:
+                            type: string
+                          bValue:
+                            type: boolean
+                          iValue:
+                            type: integer
+                          nValue:
+                            type: number
+                          sValue:
+                            type: string
+                          lbValue:
+                            type: array
+                            items:
+                              type: boolean
+                          liValue:
+                            type: array
+                            items:
+                              type: integer
+                          lnValue:
+                            type: array
+                            items:
+                              type: number
+                          lsValue:
+                            type: array
+                            items:
+                              type: string
                 outputs:
                   type: array
                   items:
                     type: object
                     properties:
-                      name:
-                        type: string
-                      value:
-                        type: string
-
+                       name:
+                         type: string
+                       value:
+                         type: string
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -188,31 +677,101 @@ spec:
           properties:
             spec:
               required:
-              - autoPlanRequest
               - type
               type: object
               properties:
-                autoPlanRequest:
-                  type: boolean
                 type:
                   type: string
-                defaultAttributes:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
-                requiredAttributes:
+                attributes:
                   type: array
                   items:
-                    type: string
+                    type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
+                    properties:
+                      name: 
+                        type: string
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
                 environments:
                   type: array
                   items:
                     type: object
+                    required:
+                    - name
+                    - attributes
                     properties:
                       name:
                         type: string
-                      defaultAttributes:
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
+                      attributes:
+                        type: array
+                        items:
+                          type: object
+                          oneOf:
+                          - required: ["name", "iValue"]
+                          - required: ["name", "sValue"]
+                          - required: ["name", "bValue"]
+                          - required: ["name", "nValue"]
+                          - required: ["name", "liValue"]
+                          - required: ["name", "lsValue"]
+                          - required: ["name", "lbValue"]
+                          - required: ["name", "lnValue"]
+                          properties:
+                            name: 
+                              type: string
+                            iValue:
+                              type: integer
+                            sValue:
+                              type: string
+                            bValue:
+                              type: boolean
+                            nValue:
+                              type: number
+                            lsValue:
+                              type: array
+                              items:
+                                type: string
+                            liValue:
+                              type: array
+                              items:
+                                type: integer
+                            lbValue:
+                              type: array
+                              items:
+                                type: boolean
+                            lnValue:
+                              type: array
+                              items:
+                                type: number
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -232,10 +791,6 @@ spec:
       subresources:
         status: {}
       additionalPrinterColumns:
-      - jsonPath: .spec.autoPlanRequest
-        name: autoPlanRequest
-        type: string
-        description: autoPlanRequest
       - jsonPath: .metadata.creationTimestamp
         name: age
         type: date
@@ -247,7 +802,6 @@ spec:
           properties:
             spec:
               required:
-              - autoPlanRequest
               - type
               type: object
               properties:
@@ -255,23 +809,46 @@ spec:
                   type: boolean
                 type:
                   type: string
-                defaultAttributes:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
-                requiredAttributes:
-                  type: array
-                  items:
-                    type: string
-                environments:
+                attributes:
                   type: array
                   items:
                     type: object
+                    oneOf:
+                    - required: ["name", "iValue"]
+                    - required: ["name", "sValue"]
+                    - required: ["name", "bValue"]
+                    - required: ["name", "nValue"]
+                    - required: ["name", "liValue"]
+                    - required: ["name", "lsValue"]
+                    - required: ["name", "lbValue"]
+                    - required: ["name", "lnValue"]
                     properties:
-                      name:
+                      name: 
                         type: string
-                      defaultAttributes:
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
+                      iValue:
+                        type: integer
+                      sValue:
+                        type: string
+                      bValue:
+                        type: boolean
+                      nValue:
+                        type: number
+                      lsValue:
+                        type: array
+                        items:
+                          type: string
+                      liValue:
+                        type: array
+                        items:
+                          type: integer
+                      lbValue:
+                        type: array
+                        items:
+                          type: boolean
+                      lnValue:
+                        type: array
+                        items:
+                          type: number
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -302,6 +879,10 @@ spec:
         name: plans
         type: string
         description: Associated plans
+      - jsonPath: .spec.targets
+        name: targets
+        type: string
+        description: Targets
       - jsonPath: .metadata.creationTimestamp
         name: age
         type: date
@@ -350,7 +931,7 @@ spec:
       - jsonPath: .spec.autoPlanApprove
         name: autoPlanApprove
         type: string
-        description: autoPlanRequest
+        description: autoPlanApprove
       - jsonPath: .spec.autoPlanRequest
         name: autoPlanRequest
         type: string
@@ -385,7 +966,6 @@ spec:
               - autoPlanApprove
               - autoPlanRequest
               - deleteJobsOnPlanDeleted
-              - deletePlansOnPlanDeleted
               type: object
               properties:
                 customTerraformInit:
@@ -396,17 +976,18 @@ spec:
                     type: string
                 environment:
                   type: string
+                trustedCA:
+                  type: string
+                  default: ""
                 autoPlanApprove:
                   type: boolean
                 autoPlanRequest:
                   type: boolean
                 deleteJobsOnPlanDeleted:
                   type: boolean
-                deletePlansOnPlanDeleted:
-                  type: boolean
                 tfGeneratorImage:
                   type: string
-                  default: harbor.pks.lab.platform-essential.com/library/tfgen:latest
+                  default: harbor.pks.lab.platform-essential.com/library/terraform-gen:latest
                 tfExecutorImage:
                   type: string
                   default: harbor.pks.lab.platform-essential.com/library/terraform:latest
@@ -418,6 +999,26 @@ spec:
                   - Never
                   default: Always
                 tfExecutorImagePullPolicy:
+                  type: string
+                  enum: 
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: Always
+                ansibleGeneratorImage:
+                  type: string
+                  default: harbor.pks.lab.platform-essential.com/library/ansible-gen:latest
+                ansibleExecutorImage:
+                  type: string
+                  default: harbor.pks.lab.platform-essential.com/library/ansible:latest
+                ansibleGeneratorImagePullPolicy:
+                  type: string
+                  enum:
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: Always
+                ansibleExecutorImagePullPolicy:
                   type: string
                   enum: 
                   - Always
@@ -475,6 +1076,10 @@ spec:
         description: Apply Complete Time
         name: applyCompleteTime
         type: string 
+      - jsonPath: .spec.targets
+        name: targets
+        type: string
+        description: Targets
       - jsonPath: .metadata.creationTimestamp
         name: age
         type: date
@@ -488,7 +1093,6 @@ spec:
               required:
               - approved
               - deleteJobsOnDeleted
-              - deletePlansOnDeleted
               - state
               type: object
               properties:
@@ -503,11 +1107,9 @@ spec:
                   type: string
                 deleteJobsOnDeleted:
                   type: boolean
-                deletePlansOnDeleted:
-                  type: boolean
                 tfGeneratorImage:
                   type: string
-                  default: harbor.pks.lab.platform-essential.com/library/tfgen:latest
+                  default: harbor.pks.lab.platform-essential.com/library/terraform-gen:latest
                 tfExecutorImage:
                   type: string
                   default: harbor.pks.lab.platform-essential.com/library/terraform:latest
@@ -595,4 +1197,229 @@ spec:
                         type: string
                       type:
                         type: string
-
+                AnsiblePlan:
+                  type: string
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ansibleplans.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: AnsiblePlan
+    plural: ansibleplans
+    singular: ansibleplan
+    shortNames:
+      - aplans
+      - aplan
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.approved
+        description: Approved
+        name: approved
+        type: boolean
+      - jsonPath: .status.planStatus
+        description: Plan Status
+        name: planStatus
+        type: string
+      - jsonPath: .status.planStartTime
+        description: Plan Start Time
+        name: planStartTime
+        type: string 
+      - jsonPath: .status.planCompleteTime
+        description: Plan Complete Time
+        name: planCompleteTime
+        type: string 
+      - jsonPath: .status.applyStatus
+        description: Apply Status
+        name: applyStatus
+        type: string  
+      - jsonPath: .status.applyStartTime
+        description: Apply Start Time
+        name: applyStartTime
+        type: string 
+      - jsonPath: .status.applyCompleteTime
+        description: Apply Complete Time
+        name: applyCompleteTime
+        type: string
+      - jsonPath: .spec.targets
+        name: targets
+        description: Targets
+        type: string
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              type: object
+              properties:
+                approved:
+                  type: boolean
+                  default: false
+                targets:
+                  type: array
+                  items:
+                    type: string
+                deleteJobsOnDeleted:
+                  type: boolean
+                  default: false
+                ansibleGeneratorImage:
+                  type: string
+                  default: harbor.pks.lab.platform-essential.com/library/ansible-gen:latest
+                ansibleExecutorImage:
+                  type: string
+                  default: harbor.pks.lab.platform-essential.com/library/ansible:latest
+                ansibleGeneratorImagePullPolicy:
+                  type: string
+                  enum:
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: Always
+                ansibleExecutorImagePullPolicy:
+                  type: string
+                  enum: 
+                  - Always
+                  - IfNotPresent
+                  - Never
+                  default: Always
+            status:
+              type: object
+              properties:
+                planStatus:
+                  type: string
+                  default: "Requested"
+                  enum:
+                  - Active
+                  - Requested
+                  - Failed
+                  - Completed
+                planOutput:
+                  type: string
+                planJob:
+                  type: string
+                  default: ""
+                planStartTime:
+                  type: string
+                  default: "Not yet started"
+                planCompleteTime:
+                  type: string
+                  default: "Not yet completed"
+                applyStatus:
+                  type: string
+                  default: "Pending"
+                  enum:
+                  - Active
+                  - Requested
+                  - Failed
+                  - Completed
+                  - Pending
+                applyOutput:
+                    type: string
+                applyStartTime:
+                  type: string
+                  default: "Not yet started"
+                applyCompleteTime:
+                  type: string
+                  default: "Not yet completed"
+                applyJob:
+                  type: string
+                  default: ""
+                applyConditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      lastProbeTime:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                planConditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      lastProbeTime:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: ansibleplanrequests.terraform.dst.io
+spec:
+  scope: Namespaced
+  group: terraform.dst.io
+  names:
+    kind: AnsiblePlanRequest
+    plural: ansibleplanrequests
+    singular: ansibleplanrequest
+    shortNames:
+      - aprs
+      - apr
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+      - jsonPath: .spec.deletePlanOnDeleted
+        name: deletePlanOnDeleted
+        type: string
+        description: deletePlanOnDeleted
+      - jsonPath: .status.plans
+        name: plans
+        type: string
+        description: Associated plans
+      - jsonPath: .spec.targets
+        name: targets
+        type: string
+        description: Targets
+      - jsonPath: .metadata.creationTimestamp
+        name: age
+        type: date
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+          - spec
+          properties:
+            spec:
+              type: object
+              properties:
+                targets:
+                  type: array
+                  items:
+                    type: string
+                deletePlanOnDeleted:
+                  type: boolean
+                  default: false
+            status:
+              type: object
+              properties:
+                plans:
+                  type: array
+                  items:
+                    type: string

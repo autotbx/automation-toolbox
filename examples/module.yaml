@@ -1,13 +1,17 @@
 apiVersion: terraform.dst.io/v1
 kind: Module
 metadata:
-  name: mymod2
-  label:
+  name: myvms
 spec:
-  autoPlanRequest: false
-  clusterModuleTemplate: svvm
   attributes:
-    vmnames:
-    - dst-tf-k8s2
-    num_cpus: 2
-    memory: 1024
+  - name: network_name
+    sValue: overwritten_network_name
+  - name: vmnames
+    lsValue:
+    - myvm2
+    - myvm1
+  - name: memory
+    iValue: 2048
+  - name: num_cpus
+    iValue: 2
+  clusterModuleTemplate: svvm

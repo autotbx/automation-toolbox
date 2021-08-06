@@ -66,12 +66,12 @@ The operator will manage automatically the Staled plan & Locked state scenario.
 
 ## Environment support
 
-Environment support is a feature that enable the following object to overwrite attributes from the defaultAttributes or the ansibleAttributesfor the **working environment**:
+Environment support is a feature that enable the following object to overwrite attributes from the defaultAttributes or the ansibleAttributes for the **working environment**:
 
 * ClusterModuleTemplate
 * ClusterProvider
 
-The state defined the **working environment**. This allow to avoid to create multiple resources with only a few differents settings that depend on the environment.
+The state defines the **working environment**. This allow to avoid to create multiple resources with only a few differents settings that depend on the environment.
 
 Example with a ClusterModuleTemplate with environment support enabled :
 
@@ -120,9 +120,21 @@ The same logic is apply to the ansibleAttributes definition.
 
 *A Module can also overwrite an attribute*
 
+## Templates inheritance
+
+Module object can use a clusterModuleTemplate or a moduleTemplate attributes.
+If a template is defined, the template attributes are evaluated during the code generation. The module can overwrite an attribute.
+
+This can be illustrated as follow (same logic for moduleTemplate except you don't have the first override from the environment): 
+
+![templating](docs/images/templating.png?raw=true)
+
+Inheritance is apply for each attributes except for the ansibleAttributes['credential'] object, the whole object credentials is taken.
+
+
 ## Terraform code generation
 
-The code of terraform is automatically created from the various objects defined. The container tfgen is responsible to generate the all terraform files.
+The code of terraform is automatically created from the various objects defined. The container terraform-gen is responsible to generate the terraform files.
 All the following objects are defined using the term **Attributes** which correspond to the line generated in the corresponding object during a terraform operation:
 
 * ClusterProviders (cluster-wide)
@@ -151,7 +163,7 @@ spec:
     bValue: true
 ```
 
-will generated the corresponding terraform file :
+will generated the corresponding terraform content :
 
 ```
 provider "vsphere" {
@@ -163,15 +175,119 @@ provider "vsphere" {
 
 ```
 
-The same behaviour happens the previous listed objets, except for the Modules that support attributes heritance from the referenced template.
+The same behaviour happens the previous listed objets, except for the Modules that support attributes inheritance from a referenced template.
 State is automatically managed by the operator.
 
 You can use the commands ``` kubectl logs POD-ID -c terraform-gen``` to have the generated output.
 
 ## Ansible code generation
 
-The code is generated from the modules ansibleAttributes key. These attributes take the attributes heritence from the referenced templates.
-Each module that have a *target* ansibleAttributes defined will be added to the inventory/playbook definition.
+The code is generated from the modules ansibleAttributes keys. These attributes can be inherited from a referenced template. (see template inheritance) 
+Each module with an ansibleAttributes will be added to the inventory/playbook definition.
+If a target is defined by the ansiblePlan, only module defined in target + their dependencies are used for the generation.
+The container ansible-gen is responsible to generate the ansible code.
+
+This generation can be illustrated as follow :
+
+![ansible-gen](docs/images/ansible-gen.png?raw=true)
+
+For example, modules with the following definition :
+
+```
+apiVersion: terraform.dst.io/v1
+kind: Module
+metadata:
+  name: mod1
+spec:
+  attributes:
+  [...]
+  ansibleAttributes:
+    credentials:
+      type: ssh
+      user: myuser
+      password: mypassword
+    roles:
+    - myrole1
+    targets:
+    - fqdn: my.host.local
+      vars:
+      - name: myhostvar
+        sValue: myhostval
+    - fqdn: my.host2.local
+    vars:
+    - name: myvar
+      sValue: myval
+---
+apiVersion: terraform.dst.io/v1
+kind: Module
+metadata:
+  name: mod2
+spec:
+  attributes:
+  [...]
+  ansibleAttributes:
+    credentials:
+      type: ssh
+      user: myuser
+      password: mypassword
+    roles:
+    - myrole1
+    targets:
+    - fqdn: my.host3.local
+      vars:
+      - name: myhostvar
+        sValue: myhostval
+    - fqdn: my.host4.local
+    vars:
+    - name: myvar
+      sValue: myval
+```
+
+will produce :
+
+- inventory.yaml
+
+```
+all:
+  children:
+    mod1:
+      hosts:
+        my.host.local:
+          myhostvar: myhostval
+         my.host2.local: {}
+      vars:
+        myvar: myval
+    mod2:
+      hosts:
+        my.host3.local:
+          myhostvar: myhostval
+         my.host4.local: {}
+      vars:
+        myvar: myval
+```
+
+- playbook.yml
+
+```
+- become: true
+  hosts: mod1
+  name: mod1
+  roles:
+  - myrole1
+  vars:
+    ansible_connection: ssh
+    ansible_password: mypassord
+    ansible_user: myuser
+- become: true
+  hosts: mod2
+  name: mod2
+  roles:
+  - myrole1
+  vars:
+    ansible_connection: ssh
+    ansible_password: mypassord
+    ansible_user: myuser
+```
 
 
 # Objects definitions
@@ -311,6 +427,7 @@ This object define the state properties
 |spec.autoPlanApprove|boolean|true||Automatically approve generated plan|
 |spec.deleteJobsOnPlanDeleted| boolean |true||Delete jobs created by the deleted plan, used by auto plan|
 |spec.customTerraformInit| string |false|| Custom terraform section { } code|
+|spec.terraformOption| string |false||  terraform CLI option to pass during the execution|
 |spec.trustedCA|string|false||Addition trusted CA|
 |spec.tfGeneratorImage| string |false|dstoffel/terraform-gen| Terraform code generator image pulling path|
 |spec.tfExecutorImage| string |false|dstoffel/terraform| Terraform executor image pulling path|

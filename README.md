@@ -94,7 +94,7 @@ The state defines the **working environment**. This allow to avoid to create mul
 
 Example with a ClusterModuleTemplate with environment support enabled :
 
-```
+```yml
 apiVersion: terraform.dst.io/v1
 kind: ClusterModuleTemplate
 metadata:
@@ -160,12 +160,12 @@ However, a default username/password is defined and you have to update this defa
 The pod will restart itself if the users configuration change.
 
 custom-values.yaml
-```
+```yml
 ui:
   users: [{"username": "admin", "password" : "password"}]
 ```
 
-```
+```bash
 helm install/upgrade -f custom-values.yaml automation-toolbox  automation-toolbox-chart/  --namespace automation-toolbox
 ```
 
@@ -184,7 +184,7 @@ All the following objects are defined using the term **Attributes** which corres
 
 For example, a Provider with the following definition :
 
-```
+```yml
 apiVersion: terraform.dst.io/v1
 kind: Provider
 metadata:
@@ -205,11 +205,11 @@ spec:
 
 will generated the corresponding terraform content :
 
-```
+```hcl
 provider "vsphere" {
 	user     = "administrator@vsphere.local"
 	password = "VMware123!"
-	vsphere_server   = "vcsa.local""
+	vsphere_server   = "vcsa.local"
 	allow_unverified_ssl = true
 }
 
@@ -233,7 +233,7 @@ This generation can be illustrated as follow :
 
 For example, modules with the following definition :
 
-```
+```yml
 apiVersion: terraform.dst.io/v1
 kind: Module
 metadata:
@@ -287,7 +287,7 @@ will produce :
 
 - inventory.yaml
 
-```
+```yml
 all:
   children:
     mod1:
@@ -308,7 +308,7 @@ all:
 
 - playbook.yml
 
-```
+```yml
 - become: true
   hosts: mod1
   name: mod1
@@ -359,7 +359,7 @@ Multiple type of attributes is available:
 |credentials.ssh_key|string|||ssh key|
 |vars|string|array[attributes]|false|ansible variable|
 
-```
+```yml
 ansibleAttributes:
   credentials:
     type: ssh
@@ -374,7 +374,7 @@ ansibleAttributes:
 
 When defining ansibleAttribute on a module, the *targets* attributes is added:
 
-```
+```yml
 ansibleAttributes:
   credentials:
     type: ssh
@@ -403,7 +403,7 @@ This object represent a terraform provider at the cluster. Cluster level is used
 |spec.attributes| array[attributes]   |true|         | attributes to use for terraform|
 |spec.environments | array[array[attributes]] |false|| Overwrite attributes for defined env|
 
-```
+```yml
 apiVersion: terraform.dst.io/v1
 kind: ClusterProvider
 metadata:
@@ -437,7 +437,7 @@ This object represent a terraform provider at the namespace level.
 |spec.attributes| array[attributes]   |true|         | attributes to use for terraform|
 
 
-```
+```yml
 apiVersion: terraform.dst.io/v1
 kind: Provider
 metadata:
@@ -479,7 +479,7 @@ This object define the state properties
 |spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
 |spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
 
-```
+```yml
 apiVersion: terraform.dst.io/v1
 kind: State
 metadata:
@@ -509,7 +509,7 @@ ClusterModuleTemplates can be consumed by a Module to provides default configura
 |spec.environments|array[array[attributes]]|false      |         |Default attributes for module that consume this template in the specify environment|
 |spec.ansibleAttribute|ansibleAttributes|false      |         |Default ansibleAttributes for module that consume this template in the specify environment|
 
-```
+```yml
 apiVersion: terraform.dst.io/v1
 kind: ClusterModuleTemplate
 metadata:
@@ -562,7 +562,7 @@ ModuleTemplates can be consumed by a Module to provides default configuration wi
 |spec.defaultAttributes|array[attributes]|true      |         |Default attributes for module that consume this template|
 |spec.ansibleAttribute|ansibleAttributes|false      |         |Default ansibleAttributes for module that consume this template in the specify environment|
 
-```
+```yml
 apiVersion: terraform.dst.io/v1
 kind: ModuleTemplate
 metadata:
@@ -609,7 +609,7 @@ A module object represent a terraform module.
 |spec.defaultAttributes|array[attributes]|true      |         |Default attributes for module that consume this template|
 |spec.ansibleAttribute|ansibleAttributes|false      |         |Default ansibleAttributes for module that consume this template in the specify environment|
 
-```
+```yml
 apiVersion: terraform.dst.io/v1
 kind: Module
 metadata:
@@ -664,7 +664,7 @@ Plan is the equivalent of the terraform/ansible plan/apply. You should not creat
 
 A helm charts is provided to install the automation toolbox.
 
-```
+```bash
 git clone https://github.com/dstoffel/automation-toolbox.git
 cd automation-toolbox
 git checkout <tag>
@@ -673,7 +673,7 @@ helm install automation-toolbox  automation-toolbox-chart/  --namespace automati
 ```
 To perform an upgrade: 
 
-```
+```bash
 git pull
 git checkout <newtag>
 helm upgrade  automation-toolbox  automation-toolbox-chart/  --namespace automation-toolbox

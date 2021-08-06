@@ -18,10 +18,11 @@ The idea is to have a simple way to consume a terraform module/ansible roles wit
 3. [Environment support](#env)
 4. [Templates inheritance](#tpl)
 5. [Web Interface](#ui)
-6. [Terraform code generation](#tfcode)
-7. [Ansible code generation](#anscode)
-8. [Objects definitions](#objs)
-9. [Installation/Upgrade](#install)
+6. [autoPlanRequest option](#auto)
+7. [Terraform code generation](#tfcode)
+8. [Ansible code generation](#anscode)
+9. [Objects definitions](#objs)
+10. [Installation/Upgrade](#install)
 
 # High Level Overview <a name="hld"></a>
 
@@ -170,6 +171,22 @@ helm install/upgrade -f custom-values.yaml automation-toolbox  automation-toolbo
 ```
 
 The usage of a user provided kubeconfig instead of working with local user is on the roadmap. This will allow to respect K8S rbac for the authenticated users.
+
+# autoPlanRequest option <a name="auto"></a>
+
+The following object support the antoPlanRequest option:
+
+- States
+- Modules
+
+A Plan will be generated in case of creation/modification/deletion of the object.
+
+However, automatic plan is not limited to these object but they take in consideration the module["autoPlanRequest"]
+
+- Modification of Provider: list all module in the namespace, create a plan with targets=[module_with_autoPlanRequest== True]
+- Modification of ModuleTemplate: list all module in the namespace, create a plan with targets=[module_with_autoPlanRequest== True and moduleTemplate==template]
+- Modification of ClusterModuleTemplate: list all module in all namespace, create a plan with targets=[module_with_autoPlanRequest== True and clusterModuleTemplate==template]
+- Modification of ClusterProviders: list all states that use the provider, list module in the namespace, create a plan with targets=[module_with_autoPlanRequest== True]
 
 
 # Terraform code generation <a name="tfcode"></a>

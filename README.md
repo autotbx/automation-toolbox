@@ -6,18 +6,32 @@ automation-toolbox is an operator for Kubernetes.
 
 The goal of this operator is to provide Kubernetes CRDs to manage :
 
-* the plan, execution and the state of a terraform project based on external terraform module
-* the plan, execution of an ansible project based on external ansible role
+* Terraform: the plan, execution and the state of a terraform project based on external terraform module
+* Ansible:  the plan, execution of an ansible project based on external ansible role
 
 The idea is to have a simple way to consume a terraform module/ansible roles without advanced terraform/ansible understanding.
 
-# High level Overview
 
-Usually, a terraform project is managed by terraform planning/apply operation and is composed with :
+# Table of contents
+1. [High Level Overview](#hld)
+2. [Execution workflow](#workflow)
+3. [Environment support](#env)
+4. [Templates inheritance](#tpl)
+5. [Web Interface](#ui)
+6. [Terraform code generation](#tfcode)
+7. [Ansible code generation](#anscode)
+8. [Objects definitions](#objs)
+9. [Installation/Upgrade](#install)
 
-* State
-* Providers
-* Modules (Resources/DataSources/Variables/Ansible)
+# High Level Overview <a name="hld"></a>
+
+Usually, a project is managed by plan/apply operation and is composed with :
+
+* State   (terraform)
+* Providers (terraform)
+* Modules (terraform Resources/DataSources/Variables)
+* Inventory (ansible)
+* Playbook (ansible)
 
 The operator define these same objects/actions by extending Kubernetes API with the following objects:
 
@@ -30,25 +44,30 @@ The operator define these same objects/actions by extending Kubernetes API with 
 * AnsiblePlanRequests (namespaced)
 * AnsiblePlans (namespaced)
 
-In addition to the previous items, a templating engine is available for the Modules object to avoid to share the attributes between various modules with the following objects:
+In addition to the previous items, a templating engine is available for the Modules object to avoid to share the attributes between various modules with the following objects: (see template inheritance)
 
 * ClusterModuleTemplates (cluster-wide)
 * ModuleTemplates (namespaced)
 
 Cluster-wide objects are used to be shared between multiple namespace.
 
-Module is also used for ansible configuration
+Module object are also used to provide ansible configuration.
 
 At the moment, one Kubernetes namespace represent a terraform project that use the same terraform state.
 These objects can be represented like this:
 
 ![terraform-operator-k8s-view](docs/images/terraform-operator-k8s-view.png?raw=true)
 
-# Terraform global execution workflow
+# Execution workflow <a name="workflow"></a>
 
-The workflow can be represented as : 
+The workflow can be summarized as :
 
 ![terraform-op-workflow](docs/images/terraform-op-workflow.png?raw=true)
+
+The complete flow is :
+
+![tf-ans-workflow](docs/images/tf-ans-workflow.png?raw=true)
+
 
 ## Stale plan / Locked state
 
@@ -61,10 +80,10 @@ During a terraform apply, 3 known kinds of errors can be returned:
 The operator will manage automatically the Staled plan & Locked state scenario.
 
 * Staled plan : Another PlanRequest is submitted with an originalPlan attribute and the attribute Approved=true. The plan is strictly compared to the previous generated plan and will raise a Failed status if the plan is different, otherwise, the plan will be appied.
-* Locked state: Wait for the retry period attribute of the state and submit another PlanRequests with Approved=true.
+* Locked state: Wait for the retry period attribute of the state and submit another PlanRequests with Approved=true. (todo)
 
 
-## Environment support
+# Environment support <a name="env"></a>
 
 Environment support is a feature that enable the following object to overwrite attributes from the defaultAttributes or the ansibleAttributes for the **working environment**:
 
@@ -120,7 +139,7 @@ The same logic is apply to the ansibleAttributes definition.
 
 *A Module can also overwrite an attribute*
 
-## Templates inheritance
+# Templates inheritance <a name="tpl"></a>
 
 Module object can use a clusterModuleTemplate or a moduleTemplate attributes.
 If a template is defined, the template attributes are evaluated during the code generation. The module can overwrite an attribute.
@@ -131,8 +150,29 @@ This can be illustrated as follow (same logic for moduleTemplate except you don'
 
 Inheritance is apply for each attributes except for the ansibleAttributes['credential'] object, the whole object credentials is taken.
 
+# Web Interface <a name="ui"></a>
 
-## Terraform code generation
+During the helm chart installation, the ui is enabled by default, reacheable by an service of type Load Balancer.
+
+The webinterface provide functionality to managed all the objects. 
+
+However, a default username/password is defined and you have to update this default value with your users.
+The pod will restart itself if the users configuration change.
+
+custom-values.yaml
+```
+ui:
+  users: [{"username": "admin", "password" : "password"}]
+```
+
+```
+helm install/upgrade -f custom-values.yaml automation-toolbox  automation-toolbox-chart/  --namespace automation-toolbox
+```
+
+The usage of a user provided kubeconfig instead of working with local user is on the roadmap. This will allow to respect K8S rbac for the authenticated users.
+
+
+# Terraform code generation <a name="tfcode"></a>
 
 The code of terraform is automatically created from the various objects defined. The container terraform-gen is responsible to generate the terraform files.
 All the following objects are defined using the term **Attributes** which correspond to the line generated in the corresponding object during a terraform operation:
@@ -180,7 +220,7 @@ State is automatically managed by the operator.
 
 You can use the commands ``` kubectl logs POD-ID -c terraform-gen``` to have the generated output.
 
-## Ansible code generation
+# Ansible code generation <a name="anscode"></a>
 
 The code is generated from the modules ansibleAttributes keys. These attributes can be inherited from a referenced template. (see template inheritance) 
 Each module with an ansibleAttributes will be added to the inventory/playbook definition.
@@ -289,9 +329,8 @@ all:
     ansible_user: myuser
 ```
 
-
-# Objects definitions
-## Attributes type
+# Objects definitions <a name="objs"></a>
+## Attributes type <a name="attr"></a>
 
 Multiple type of attributes is available:
 
@@ -306,7 +345,7 @@ Multiple type of attributes is available:
 |lbValue    | list of boolean  |
 |lnValue    | list of number   |
 
-## AnsibleAttributes
+## AnsibleAttributes <a name="ansattr"></a>
 
 | variable | type | required | default | Description |
 |----------|----------|----------|---------|-------|
@@ -318,6 +357,7 @@ Multiple type of attributes is available:
 |credentials.user|string|||user|
 |credentials.password|string|||password|
 |credentials.ssh_key|string|||ssh key|
+|vars|string|array[attributes]|false|ansible variable|
 
 ```
 ansibleAttributes:
@@ -353,7 +393,7 @@ ansibleAttributes:
 ```
 
 
-## ClusterProviders 
+## ClusterProviders <a name="clprds"></a>
 This object represent a terraform provider at the cluster. Cluster level is used to shared a Providers with multiple namespace.
 
 | variable | type | required | default | Description |
@@ -386,7 +426,7 @@ spec:
       sValue: 'XXXX'
 ```
 
-## Providers
+## Providers <a name="prds"></a>
 
 This object represent a terraform provider at the namespace level.
 
@@ -415,7 +455,7 @@ spec:
     bValue: true
 ```
 
-## States
+## States <a name="states"></a>
 
 This object define the state properties
 
@@ -455,7 +495,7 @@ spec:
 ```
 
 ## Modules
-### ClusterModuleTemplates
+### ClusterModuleTemplates <a name="clmodtpl"></a>
 
 ClusterModuleTemplates can be consumed by a Module to provides default configuration with the possibilities to overwrite specific parameters
 
@@ -509,7 +549,7 @@ spec:
     type: iValue
  ```
 
-### ModuleTemplates
+### ModuleTemplates <a name="modtpl"></a>
 
 ModuleTemplates can be consumed by a Module to provides default configuration with the possibilities to overwrite specific parameters
 
@@ -557,7 +597,7 @@ spec:
     type: iValue
  ```
 
-### Modules
+### Modules <a name="mod"></a>
 
 A module object represent a terraform module.
 
@@ -590,7 +630,7 @@ spec:
 ```
 
 
-## PlanRequests / AnsiblePlanRequests
+## PlanRequests / AnsiblePlanRequests <a name="pr"></a>
 
 PlanRequest are used to request the generation of a new Plan.
 
@@ -601,9 +641,9 @@ PlanRequest are used to request the generation of a new Plan.
 |spec.targets|array[string]|false||Target limitation during terraform operation|
 
 
-## Plans / AnsiblePlans
+## Plans / AnsiblePlans <a name="plans"></a>
 
-Plan is the equivalent of the terraform/ansible plan/apply. You should create this object as they are created by the PlanRequest object.
+Plan is the equivalent of the terraform/ansible plan/apply. You should not create this object as they are created by the PlanRequest object.
 
 | variable | type | required | default | Description |
 |----------|----------|----------|---------|-------|
@@ -620,8 +660,25 @@ Plan is the equivalent of the terraform/ansible plan/apply. You should create th
 |spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
 |spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
 
+# Installation / Upgrade <a name="install"></a>
 
+A helm charts is provided to install the automation toolbox.
 
-## Terraform <-> Ansible technical worklflow
+```
+git clone https://github.com/dstoffel/automation-toolbox.git
+cd automation-toolbox
+git checkout <tag>
+kubectl create ns automation-toolbox
+helm install automation-toolbox  automation-toolbox-chart/  --namespace automation-toolbox
+```
+To perform an upgrade: 
 
-![tf-ans-workflow](docs/images/tf-ans-workflow.png?raw=true)
+```
+git pull
+git checkout <newtag>
+helm upgrade  automation-toolbox  automation-toolbox-chart/  --namespace automation-toolbox
+```
+
+All existing states will not be updated automatically to allow you to manually tests all plan correctly.
+You can update the state image* path to match the new tag.
+

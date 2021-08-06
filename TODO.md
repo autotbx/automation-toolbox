@@ -6,3 +6,4 @@
 * UI: implement CSRF machanism
 * UI: realtime joblogs
 * OP: callback to CI?
+* UI/OP: support attribute of type [nested] map

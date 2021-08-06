@@ -844,11 +844,11 @@ function setinvalid(attr, invalid=true){
     }
     else if ($(this).parent().parent().parent().parent().hasClass('requiredAttributes')) {
       var html = formatAttributes(attrtype, "", "", "list").replace('type=', 'required type=');
-      $(this).closest('div').after(html);
+      $(this).closest('div').parent().append(html);
     }
     else {
       var html = formatAttributes(attrtype, "", "", "list");
-      $(this).closest('div').after(html);
+      $(this).closest('div').parent().append(html);
     }
     feather.replace();
     return;

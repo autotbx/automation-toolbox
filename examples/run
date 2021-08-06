@@ -1,3 +1,0 @@
-kopf run --verbose terraform-operator.py
-
-FLASK_APP=ui.py python3 -m flask run

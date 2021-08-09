@@ -105,7 +105,7 @@ def saveKind(plural, method, request, namespace):
   if body == None:
     flash(f'Error occured during saving {kind}/{request.form["name"]} : JSON invalid', 'error')
     return
-  print(f"Saving {plural} [{current_user.username}]: {body}")
+  print(f"Saving {plural}/{request.form["name"]} [{current_user.username}]: {body}")
   body['apiVersion'] = f'{API_GROUP}/{API_VERSION}'
   body['kind']= kind
   #version = ""
@@ -270,7 +270,8 @@ def ansplan(namespace, name):
 @app.route('/states/_new/')
 @login_required
 def new_states():
-  form = json.dumps(utils.getForm('states'))
+  form = utils.getForm('states')
+  form = json.dumps(utils.safeDump(form))
   return render_template("edit.html",pluralTitle='State', name=f"New State", plural='states', mode="create", action="create", form=form, namespaces=utils.getNamespace(),username=current_user.username, namespace=None)
 
 @app.route('/states', methods=['POST'])
@@ -282,7 +283,8 @@ def states():
   body['apiVersion'] = f'{API_GROUP}/{API_VERSION}'
   body['kind']= kind
   body['metadata'] = client.V1ObjectMeta(name=f'{request.form["name"]}', namespace=f'{request.form["name"]}')
-  form = json.dumps(utils.getForm('states'))
+  form = utils.getForm('states')
+  form = json.dumps(utils.safeDump(form))
   try:
     api_response = _k8s_core.create_namespace(client.V1Namespace(metadata=client.V1ObjectMeta(name=request.form["name"], labels={"toolbox-managed": "true"})))
     if api_response.status.phase == 'Active':
@@ -307,10 +309,11 @@ def new(plural, namespace):
   if plural not in plurals:
     abort(404)
   form = utils.getForm(plural,namespace)
+  
   if plural == "states":
     form[0]['fields'][0]['value'] = namespace
     form[0]['fields'][0]['disabled'] = True
-  form = json.dumps(form)
+  form = json.dumps(utils.safeDump(form))
   return render_template("edit.html",pluralTitle=plural.title(), action="create", namespace=namespace, name=f"New {plural.title()}", plural=plural, mode="create", form=form, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
 
 
@@ -321,7 +324,9 @@ def edit(plural, namespace, name):
   obj = utils.getObj(plural, name, namespace=namespace)
   if obj == None:
     abort(404)
-  form = json.dumps(utils.updateFieldsValues(utils.getForm(plural, namespace), plural, obj))
+
+  form = utils.updateFieldsValues(utils.getForm(plural, namespace), plural, obj)
+  form = json.dumps(utils.safeDump(form))
   return render_template("edit.html",pluralTitle=plural.title(), action="edit", plural=plural, name=name, namespace=namespace, form=form, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
 
 @app.route('/cluster/<plural>/<name>/edit')
@@ -331,7 +336,8 @@ def editCluster(plural, name):
   if obj == None:
     abort(404)
   
-  form = json.dumps(utils.updateFieldsValues(utils.getForm(plural), plural, obj))
+  form = utils.updateFieldsValues(utils.getForm(plural), plural, obj)
+  form = json.dumps(utils.safeDump(form))
 
   return render_template("edit.html",pluralTitle=plural.title(), plural=plural,  action="edit", name=name, namespace=session.get("namespace",None), form=form, namespaces=utils.getNamespace(),username=current_user.username)
 
@@ -340,8 +346,8 @@ def editCluster(plural, name):
 def newCluster(plural):
   if plural not in clusterplurals:
     abort(404)
-  #form =  utils.getForm(plural)
-  form = json.dumps(utils.getForm(plural))
+  form = utils.getForm(plural)
+  form = json.dumps(utils.safeDump(form))
   return render_template("edit.html",pluralTitle=plural.title(), action="create", namespace=session.get("namespace",None), name=f"New {plural.title()}", plural=plural, mode="create", form=form, namespaces=utils.getNamespace(),username=current_user.username)
 
 
@@ -433,7 +439,7 @@ def apiPlural(plural):
   if plural == "planrequests":
     for item in _k8s_custom.list_cluster_custom_object(API_GROUP, API_VERSION, "ansibleplanrequests")["items"]:
       out.append(utils.formatKind("ansibleplanrequests", item))
-
+  out = [ utils.escapeAttribute(x) for x in out ]
   return jsonify({'data': out})
 
 @app.route('/api/<plural>/<namespace>')
@@ -480,7 +486,7 @@ def apiModRequiredAttributes(namespace, name):
     for attribute in item['spec']["requiredAttributes"]:
       val = [] if attribute['type'].startswith('l') else ''
       r.append({"name": attribute["name"], attribute["type"]: val})
-  return jsonify(r)
+  return jsonify(utils.escapeAttribute(r))
 
 @app.route('/api/moduletemplates/<namespace>/<name>/hattributes')
 @nsexist
@@ -491,7 +497,7 @@ def apiHeritedModAttributes(namespace, name):
   except ApiException:
     abort(404)
   r = []
-  for sec in utils.updateFieldsValues(utils.getForm('moduletemplates', namespace), 'moduletemplates', item):
+  for sec in utils.safeDump(utils.updateFieldsValues(utils.getForm('moduletemplates', namespace), 'moduletemplates', item)):
     if sec['id'] in ['defaultAttributes', 'ansibleSpec', 'ansibleRoles', 'ansibleVars', "ansibleDependencies"]:
       r.append(sec) 
   return jsonify(r)
@@ -512,7 +518,7 @@ def apiModAttributes(namespace, name):
     for attrtype in attrtypes:
       key = attrtype['type'] if attrtype['type'] in attribute else key
     if request.args.get('qry') in attribute['name']:
-      r.append({'value': key, 'text': attribute['name']})
+      r.append({'value': utils.escapeAttribute(key), 'text': utils.escapeAttribute(attribute['name'])})
   return jsonify(r)
 
 @app.route('/api/clustermoduletemplates/<name>/requiredAttributes')
@@ -527,7 +533,7 @@ def apiClusterModRequiredAttributes(name):
     for attribute in item['spec']["requiredAttributes"]:
       val = [] if attribute['type'].startswith('l') else ''
       r.append({"name": attribute["name"], attribute["type"]: val})
-  return jsonify(r)
+  return jsonify(utils.escapeAttribute(r))
 
 
 def updateAttribute(sections, section_id, field_id, newattribute):
@@ -580,7 +586,7 @@ def apiClusterHeritedModAttributes(namespace, name):
   except ApiException:
     abort(404)
   r = []
-  for sec in utils.updateFieldsValues(utils.getForm('clustermoduletemplates'), 'clustermoduletemplates', item):
+  for sec in utils.safeDump(utils.updateFieldsValues(utils.getForm('clustermoduletemplates'), 'clustermoduletemplates', item)):
     if sec['id'] in ['defaultAttributes', 'ansibleSpec', 'ansibleRoles', 'ansibleVars', "ansibleDependencies"]:
       r.append(sec)
   if "environment" in stateenv['spec'] and "environments" in item['spec']:
@@ -588,21 +594,21 @@ def apiClusterHeritedModAttributes(namespace, name):
       if env['name'] == stateenv['spec']['environment']:
         if "defaultAttributes" in env:
           for envattr in env['defaultAttributes']:
-            r = updateAttribute(r, "defaultAttributes", "defaultAttributes", envattr)
+            r = updateAttribute(r, "defaultAttributes", "defaultAttributes", utils.escapeAttribute(envattr))
         if "ansibleAttributes" in env and "vars" in env["ansibleAttributes"]:
           for envattr in env["ansibleAttributes"]['vars']:
-            r = updateAttribute(r, "ansibleVars", "ansibleVars", envattr)
+            r = updateAttribute(r, "ansibleVars", "ansibleVars", utils.escapeAttribute(envattr))
         if "ansibleAttributes" in env and "roles" in env["ansibleAttributes"]:
-          r = updateAttribute(r, "ansibleRoles", "ansibleRoles", env["ansibleAttributes"]['roles'])
+          r = updateAttribute(r, "ansibleRoles", "ansibleRoles", utils.escapeAttribute(env["ansibleAttributes"]['roles']))
         if "ansibleAttributes" in env and "dependencies" in env["ansibleAttributes"]:
-          r = updateAttribute(r, "ansibleDependencies", "ansibleDependencies", env["ansibleAttributes"]['dependencies'])
+          r = updateAttribute(r, "ansibleDependencies", "ansibleDependencies", utils.escapeAttribute(env["ansibleAttributes"]['dependencies']))
         if "ansibleAttributes" in env and "defaultGalaxyServer" in env["ansibleAttributes"]:
-          r = updateAttribute(r, "ansibleSpec", "ansible_defaultGalaxyServer", env["ansibleAttributes"]["defaultGalaxyServer"])
+          r = updateAttribute(r, "ansibleSpec", "ansible_defaultGalaxyServer", utils.escapeAttribute(env["ansibleAttributes"]["defaultGalaxyServer"]))
         if "ansibleAttributes" in env and "credentials" in env["ansibleAttributes"]:
-          r = updateAttribute(r, "ansibleSpec", "ansible_cred_user", env["ansibleAttributes"]["credentials"]['user'])
-          r = updateAttribute(r, "ansibleSpec", "ansible_cred_password", env["ansibleAttributes"]["credentials"]['password'])
-          r = updateAttribute(r, "ansibleSpec", "ansible_cred_ssh_key", env["ansibleAttributes"]["credentials"]['ssh_key'])
-          r = updateAttribute(r, "ansibleSpec", "ansible_cred_type", env["ansibleAttributes"]["credentials"]['type'])
+          r = updateAttribute(r, "ansibleSpec", "ansible_cred_user", utils.escapeAttribute(env["ansibleAttributes"]["credentials"]['user']))
+          r = updateAttribute(r, "ansibleSpec", "ansible_cred_password", utils.escapeAttribute(env["ansibleAttributes"]["credentials"]['password']))
+          r = updateAttribute(r, "ansibleSpec", "ansible_cred_ssh_key", utils.escapeAttribute(env["ansibleAttributes"]["credentials"]['ssh_key']))
+          r = updateAttribute(r, "ansibleSpec", "ansible_cred_type", utils.escapeAttribute(env["ansibleAttributes"]["credentials"]['type']))
   return jsonify(r)
 
 @app.route('/api/clustermoduletemplates/<name>/attributes')
@@ -619,5 +625,5 @@ def apiClusterModAttributes(name):
     for attrtype in attrtypes:
       key = attrtype['type'] if attrtype['type'] in attribute else key
     if request.args.get('qry') in attribute['name']:
-      r.append({'value': key, 'text': attribute['name']})
+      r.append({'value': utils.escapeAttribute(key), 'text': utils.escapeAttribute(attribute['name'])})
   return jsonify(r)

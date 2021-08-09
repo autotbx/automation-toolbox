@@ -48,8 +48,8 @@ def formatKind(kind, obj):
       'autoPlanApprove': obj["spec"]["autoPlanApprove"],
       'autoPlanRequest' : obj["spec"]['autoPlanRequest'],
       'deleteJobsOnPlanDeleted': obj["spec"]['deleteJobsOnPlanDeleted'],
-      'clusterProviders' : ','.join(obj["spec"]["clusterProviders"]) if "clusterProviders" in obj["spec"] else "",
-      'environment' : obj["spec"]["environment"] if "environment" in obj["spec"] else "",
+      'clusterProviders' : escapeAttribute(','.join(obj["spec"]["clusterProviders"]) if "clusterProviders" in obj["spec"] else ""),
+      'environment' : escapeAttribute(obj["spec"]["environment"] if "environment" in obj["spec"] else ""),
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
       'namespace' :  nslink
     }
@@ -59,12 +59,12 @@ def formatKind(kind, obj):
       'type' : 'terraform' if kind == "plans" else "ansible",
       'approved': obj["spec"]["approved"],
       'applyStatus' : obj["status"]['applyStatus'],
-      'applyStartTime': obj["status"]['applyStartTime'],
+      'applyStartTime': escapeAttribute(obj["status"]['applyStartTime']),
       'applyCompleteTime': obj["status"]['applyCompleteTime'],
       'planStatus' : obj["status"]['planStatus'],
       'planStartTime': obj["status"]['planStartTime'],
-      'planCompleteTime': obj["status"]['planCompleteTime'],
-      'targets': ','.join(obj["spec"]["targets"]) if "targets" in obj['spec'] else '',
+      'planCompleteTime': escapeAttribute(obj["status"]['planCompleteTime']),
+      'targets': escapeAttribute(','.join(obj["spec"]["targets"]) if "targets" in obj['spec'] else ''),
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
       'namespace' :  nslink
     }
@@ -73,12 +73,12 @@ def formatKind(kind, obj):
       'name' : link,
       'type' : 'terraform' if kind == "planrequests" else "ansible",
       'deletePlanOnDeleted': obj["spec"]["deletePlanOnDeleted"],
-      'targets': ','.join(obj["spec"]["targets"]) if "targets" in obj['spec'] else '',
+      'targets': escapeAttribute(','.join(obj["spec"]["targets"]) if "targets" in obj['spec'] else ''),
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
       'namespace' :  nslink
     }
     if "status" in obj and "plans" in obj["status"]:
-        out['plans'] = ','.join([ f'<a href="/plans/{x}">{x}</a>' for x in obj["status"]["plans"]])
+        out['plans'] = ','.join([ f'<a href="/plans/{escapeAttribute(x)}">{escapeAttribute(x)}</a>' for x in obj["status"]["plans"]])
     else:
         out['plans'] = ''
     return out
@@ -86,14 +86,14 @@ def formatKind(kind, obj):
   elif kind == "providers" or kind == "clusterproviders":
     return {
       'name' : link,
-      'type' : obj["spec"]["type"] if "type" in obj["spec"] else "",
+      'type' : escapeAttribute(obj["spec"]["type"] if "type" in obj["spec"] else ""),
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
       'namespace':  nslink if "namespace" in obj["metadata"] else None
     }
   elif kind == "moduletemplates" or kind == "clustermoduletemplates":
     return {
       'name' : link,
-      "requiredAttributes" : ','.join([x['name'] for x in obj["spec"]["requiredAttributes"]]) if "requiredAttributes" in obj["spec"] else "",
+      "requiredAttributes" : escapeAttribute(','.join([x['name'] for x in obj["spec"]["requiredAttributes"]]) if "requiredAttributes" in obj["spec"] else ""),
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
       'namespace' :  nslink if "namespace" in obj["metadata"] else None
     }
@@ -101,8 +101,8 @@ def formatKind(kind, obj):
     return {
       'name' : link,
       "autoPlanRequest": obj["spec"]["autoPlanRequest"],
-      "clusterModuleTemplate": f'<a href="/clustermoduletemplates/{obj["spec"]["clusterModuleTemplate"]}">{obj["spec"]["clusterModuleTemplate"]}</a>' if "clusterModuleTemplate" in obj["spec"] else "",
-      "moduleTemplate": f'<a href="/moduletemplates/{obj["spec"]["moduleTemplate"]}">{obj["spec"]["moduleTemplate"]}</a>' if "moduleTemplate" in obj["spec"] else "",
+      "clusterModuleTemplate": f'<a href="/clustermoduletemplates/{escapeAttribute(obj["spec"]["clusterModuleTemplate"])}">{escapeAttribute(obj["spec"]["clusterModuleTemplate"])}</a>' if "clusterModuleTemplate" in obj["spec"] else "",
+      "moduleTemplate": f'<a href="/moduletemplates/{escapeAttribute(obj["spec"]["moduleTemplate"])}">{escapeAttribute(obj["spec"]["moduleTemplate"])}</a>' if "moduleTemplate" in obj["spec"] else "",
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
       'namespace' :  nslink
     }
@@ -165,6 +165,51 @@ def getObj(plural, name, namespace=None):
             print("Exception when calling CustomObjectsApi->get_namespaced_custom_object: %s\n" % e)
             return None
     return obj
+
+
+def getAttributeType(value):
+  attrtype = ["sValue", "iValue", "nValue", "bValue", "lsValue", "liValue", "lnValue", "lbValue"]
+  for t in attrtype:
+    if t in value:
+      return t
+
+def escapeAttribute(values):
+  if type(values) == type(''):
+    return escape(values)
+  if type(values) == type([]) and len(values) != 0 and type(values[0]) == type(''):
+    return [escape(x) for x in values]
+  if type(values) == type([]) and len(values) != 0 and type(values[0]) == type({}):
+    return [ {"name": escape(x['name']), getAttributeType(x) : escapeAttribute(x[getAttributeType(x)])} for x in values]
+  return values
+  
+def safeDump(form):
+  i = 0
+  for section in form:
+    if section["id"] == "environments":
+      j = 0
+      for env in form[i]["fields"][0]["value"]:
+        form[i]["fields"][0]["value"][j]["name"] = escapeAttribute(env["name"])
+        for x in ["attributes", "defaultAttributes", "requiredAttributes"]:
+          if x in form[i]["fields"][0]["value"][j]:
+            form[i]["fields"][0]["value"][j][x] = escapeAttribute(env[x])
+        if 'ansibleAttributes' in env:
+          for x in ["roles", "dependencies", "vars"]:
+            if x in form[i]["fields"][0]["value"][j]["ansibleAttributes"]:
+              form[i]["fields"][0]["value"][j]["ansibleAttributes"][x] = escapeAttribute(env["ansibleAttributes"][x])
+          if "credentials" in env["ansibleAttributes"]:
+            for x in env["ansibleAttributes"]["credentials"]:
+              form[i]["fields"][0]["value"][j]["ansibleAttributes"]["credentials"][x] = escapeAttribute(env["ansibleAttributes"]["credentials"][x])
+            if "defaultGalaxyServer" in env["ansibleAttributes"]:
+              form[i]["fields"][0]["value"][j]["ansibleAttributes"]["defaultGalaxyServer"] = escapeAttribute(env["ansibleAttributes"]["defaultGalaxyServer"])
+        j = j + 1
+    elif "fields" in section:
+      j = 0
+      for field in section["fields"]:
+        if "value" in field:
+          form[i]["fields"][j]["value"] = escapeAttribute(field['value'])
+        j = j+1
+    i = i+1
+  return form
 
 def getForm(plural, namespace=None):
     clproviders = _k8s_custom.list_cluster_custom_object(API_GROUP, API_VERSION, 'clusterproviders')["items"]

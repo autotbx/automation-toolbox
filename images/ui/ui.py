@@ -105,7 +105,7 @@ def saveKind(plural, method, request, namespace):
   if body == None:
     flash(f'Error occured during saving {kind}/{request.form["name"]} : JSON invalid', 'error')
     return
-  print(f"Saving {plural}/{request.form["name"]} [{current_user.username}]: {body}")
+  print(f"Saving {plural}/{request.form['name']} [{current_user.username}]: {body}")
   body['apiVersion'] = f'{API_GROUP}/{API_VERSION}'
   body['kind']= kind
   #version = ""

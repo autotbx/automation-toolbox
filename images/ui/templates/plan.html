@@ -90,7 +90,7 @@ $(document).ready(function() {
     });
     $( "#approve").click(function() {
         if (confirm('Are you sure to approve this plan ?')) {
-            location.href = "/{{plural}}/{{namespace}}/?name={{plan['metadata']['name']}}&approve=true";
+            location.href = "/{{plural}}/{{namespace}}/?name={{plan['metadata']['name']}}&approve=true&csrf_token={{ csrf_token() }}";
         }
     });
 });

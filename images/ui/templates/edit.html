@@ -85,10 +85,12 @@ var attrtypes = [
               {"name": "Number[]", "type" : "lnValue"},
               {"name": "Boolean[]", "type": "lbValue"},
             ];
+var csrf_token = "{{ csrf_token() }}";
 initForm(form);
 
 var completetype = (plural == 'modules') ? ($('#formmoduleTemplate').val() != '') ? 'moduletemplates' : 'clustermoduletemplates' : '';
 var completetpl = (plural == 'modules') ? ($('#formmoduleTemplate').val() != '') ? $('#formmoduleTemplate').val() : $('#formclusterModuleTemplate').val() : '';
+
 
 if (plural == "modules") {
   if (form[1]['fields'][0]['value'].length == 0) {
@@ -353,6 +355,7 @@ function genForm(sections) {
     }
   });
   html += '<button type="submit" id="submit" style="display: none" class="btn btn-primary">Submit</button>'
+  html += '<input type="hidden" name="csrf_token" value="'+csrf_token+'" />';
   return html;
 }
 
@@ -942,9 +945,9 @@ function setinvalid(attr, invalid=true){
   $(".actiondelete").click(function() {
     if (confirm('Arey you sure to delete {{plural}}/{{name}} ?')) {
         {% if plural == "clusterproviders" or plural == "clustermoduletemplates" %}
-          location.href = '/cluster/{{plural}}/?delete=true&name={{name}}'
+          location.href = '/cluster/{{plural}}/?delete=true&name={{name}}&csrf_token={{ csrf_token() }}';
         {% else %}
-          location.href = '/{{plural}}/{{namespace}}/?delete=true&name={{name}}'
+          location.href = '/{{plural}}/{{namespace}}/?delete=true&name={{name}}&csrf_token={{ csrf_token() }}';
         {% endif %}
     }
   });

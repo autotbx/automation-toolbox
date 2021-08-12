@@ -1,5 +1,6 @@
 from flask import Flask, request, render_template, abort, flash, redirect, url_for, jsonify, session, send_file
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
+from flask_wtf.csrf import CSRFProtect, validate_csrf, CSRFError
 from html import escape
 from sys import exit
 import os, json, re, kubernetes, random, string
@@ -39,6 +40,8 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_message = None
 login_manager.login_view = "login"
+csrf = CSRFProtect()
+csrf.init_app(app)
 
 
 clusterplurals = ["clusterproviders", "clustermoduletemplates" ]
@@ -135,9 +138,6 @@ def saveKind(plural, method, request, namespace):
     except ApiException as e:
       flash(f'Error occured during saving {kind}/{request.form["name"]} : {e} <br /> body: {body}', 'error')      
 
-def genToken():
-  return ''.join(random.choice(string.ascii_letters) for i in range(16))
-
 def nsexist(function):
     @wraps(function)
     def wrapper(*args, **kwargs):
@@ -153,9 +153,12 @@ def load_user(userid):
 @app.route("/logout")
 @login_required
 def logout():
+  try:
+    validate_csrf(request.args.get('csrf_token'))
+  except:
+    return CSRFError()
   logout_user()
   return redirect('/login')
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -192,6 +195,10 @@ def plans():
 def plansNamespaced(namespace):
   session["namespace"]=namespace
   if request.args.get('approve') == "true" and request.args.get('name') != "":
+    try:
+      validate_csrf(request.args.get('csrf_token'))
+    except:
+      return CSRFError()
     try:
       _k8s_custom.patch_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', name=request.args.get('name'), body={'spec': {'approved': True}})
       flash(f'Plan {request.args.get("name")} successfully approved', 'success')
@@ -374,6 +381,10 @@ def clusterPlural(plural):
     method = "edit" if request.args.get('edit') == "true" else "create"
     saveKind(plural, method, request, None)
   if request.args.get('delete') == "true" and request.args.get('name') != "":
+    try:
+      validate_csrf(request.args.get('csrf_token'))
+    except:
+      return CSRFError()
     deleteKind(plural, request.args.get('name'), None)
 
   plural = plural
@@ -403,6 +414,10 @@ def pluralNamespaced(plural, namespace):
     saveKind(plural, method, request, namespace)
 
   if request.args.get('delete') == "true" and request.args.get('name') != "":
+    try:
+      validate_csrf(request.args.get('csrf_token'))
+    except:
+      return CSRFError()
     deleteKind(plural, request.args.get('name'), namespace)
 
   table, js = utils.genTable(utils.apiMapping(plural), plural, f'/api/{plural}/{namespace}')

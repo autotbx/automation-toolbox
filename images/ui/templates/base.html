@@ -50,7 +50,7 @@
             </div>
             {% endif %}
           </div>
-	  <button class="custbutton btn btn-secondary" type="button" onclick="location.href='/logout'">Connected as {{username}} - Sign Out</button>
+	  <button class="custbutton btn btn-secondary" type="button" onclick="location.href='/logout?csrf_token={{ csrf_token() }}'">Connected as {{username}} - Sign Out</button>
         </div>
         <div style="font-weight: bold; float: left; padding-top: 5px;"><i data-feather="chevron-right"></i> AUTOMATION TOOLBOX</div>
       </div>

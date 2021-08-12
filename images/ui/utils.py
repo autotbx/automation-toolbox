@@ -179,7 +179,10 @@ def escapeAttribute(values):
   if type(values) == type([]) and len(values) != 0 and type(values[0]) == type(''):
     return [escape(x) for x in values]
   if type(values) == type([]) and len(values) != 0 and type(values[0]) == type({}):
-    return [ {"name": escape(x['name']), getAttributeType(x) : escapeAttribute(x[getAttributeType(x)])} for x in values]
+    if list(values[0].keys())[0] == 'fqdn':
+      return [ {"fqdn" : escape(x['fqdn'])} for x in values ]
+    else:
+      return [ {"name": escape(x['name']), getAttributeType(x) : escapeAttribute(x[getAttributeType(x)])} for x in values]
   return values
   
 def safeDump(form):

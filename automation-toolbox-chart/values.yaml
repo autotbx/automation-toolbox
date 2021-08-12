@@ -36,6 +36,7 @@ ui:
   enabled: true
   replicas: 1
   image: dstoffel/ui
+  secret: default_secret
   #tag:
   pullPolicy: IfNotPresent
   users: [{"username": "admin", "password" : "password"}]

@@ -51,6 +51,9 @@ spec:
           readOnly: true
         image: "{{ .Values.ui.image }}:{{ .Values.ui.tag | default .Chart.AppVersion }}"
         imagePullPolicy:  "{{ .Values.ui.pullPolicy }}"
+        env:
+        - name: APP_SECRET
+          value: "{{ .Values.ui.secret }}"
         ports:
           - name: http
             containerPort: 5000

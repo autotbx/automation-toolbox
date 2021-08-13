@@ -180,7 +180,7 @@ def escapeAttribute(values):
     return [escape(x) for x in values]
   if type(values) == type([]) and len(values) != 0 and type(values[0]) == type({}):
     if list(values[0].keys())[0] == 'fqdn':
-      return [ {"fqdn" : escape(x['fqdn'])} for x in values ]
+      return [ {"fqdn" : escape(x['fqdn']), "vars" : escapeAttribute(x['vars']) if "vars" in x else []} for x in values ]
     else:
       return [ {"name": escape(x['name']), getAttributeType(x) : escapeAttribute(x[getAttributeType(x)])} for x in values]
   return values

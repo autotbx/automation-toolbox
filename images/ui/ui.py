@@ -108,6 +108,14 @@ def saveKind(plural, method, request, namespace):
   if body == None:
     flash(f'Error occured during saving {kind}/{request.form["name"]} : JSON invalid', 'error')
     return
+  if plural == "modules" and method == "edit":
+    if "clusterModuleTemplate" in request.form and request.form["clusterModuleTemplate"] != "":
+      body["spec"]["moduleTemplate"] = None
+    elif "moduleTemplate" in request.form and request.form["moduleTemplate"] != "":
+      body["spec"]["clusterModuleTemplate"] = None
+    else:
+      body["spec"]["moduleTemplate"] = None
+      body["spec"]["clusterModuleTemplate"] = None
   print(f"Saving {plural}/{request.form['name']} [{current_user.username}]: {body}")
   body['apiVersion'] = f'{API_GROUP}/{API_VERSION}'
   body['kind']= kind

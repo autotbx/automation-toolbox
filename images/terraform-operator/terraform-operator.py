@@ -295,6 +295,7 @@ def applyStatus(diff, status, namespace, logger, body, **kwargs):
     updateCustomStatus(logger ,plural, namespace, body.metadata.name, {'applyOutput' : log})
     if body['kind'] == "Plan" and not body['metadata']['name'].startswith('delete-mod-'):
       module_names = []
+      create_ansible_plan = False
       for target in body["spec"]["targets"] if "targets" in body['spec'] else []:
         module_name = target
         try:
@@ -304,14 +305,19 @@ def applyStatus(diff, status, namespace, logger, body, **kwargs):
           continue
         if "ansibleAttributes" in module["spec"] and "targets" in module["spec"]["ansibleAttributes"] and len(module["spec"]["ansibleAttributes"]["targets"]) != 0:
           module_names.append(module_name)
+          create_ansible_plan = True
         else:
           logger.info(f'No targets defined in module {module_name}, skipping this module for ansibleplan')
-      if len(module_names) != 0 or not "targets" in body["spec"]:
+      if not "targets" in body['spec']:
+        for module in custom_api_instance.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, "modules")["items"]:
+          if "ansibleAttributes" in module["spec"] and "targets" in module["spec"]["ansibleAttributes"] and len(module["spec"]["ansibleAttributes"]["targets"]) != 0:
+            create_ansible_plan = True
+            break
+      if create_ansible_plan:
         state = get_state(namespace)
         if state == None:
           logger.error(f"Cannot get state in namespace {namespace}, skipping create AnsiblePlan")
           return
-        #approved = True if len(module_names) != 0 else state['spec']['autoPlanApprove']
         approved = True if body['metadata']['name'].startswith('create-mod-') else state['spec']['autoPlanApprove']
         plan_body = {
           'apiVersion': f'{API_GROUP}/{API_VERSION}',

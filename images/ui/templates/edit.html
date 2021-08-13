@@ -70,7 +70,8 @@
 var name = "{{name}}";
 var namespace = "{{namespace}}";
 var form={{form|safe}};
-var plural="{{plural}}"
+var plural="{{plural}}";
+var action="{{action}}";
 {% if js %}
 {{js|safe}}
 {% endif %}
@@ -216,25 +217,31 @@ function getAnsibleAttributes(where) {
     ansibleAttributes["credentials"]["type"] = ansibleCredType;
     ansibleAttributes["credentials"]["ssh_key"] = ansibleCredSSH;
   }
-  else {
-    ansibleAttributes["credentials"] = null;
+  else if (action == "edit"){
+      ansibleAttributes["credentials"] = null;
   }
-  ansibleAttributes["defaultGalaxyServer"] = (ansibleGalaxy != "") ? ansibleGalaxy : null;
+  if (action == "create" && ansibleGalaxy != "" ) {
+    ansibleAttributes["defaultGalaxyServer"] = ansibleGalaxy;
+  }
+  else if (action == "edit") {
+    ansibleAttributes["defaultGalaxyServer"] = (ansibleGalaxy != "") ? ansibleGalaxy : null;
+  }
+
   var roles = getFormAttributes($(where).find('div.ansibleRoles'));
   if (roles.length != 0) {
     roles = getFormAttributes($(where).find('div.ansibleRoles'))[0]['lsValue'];
-    ansibleAttributes["roles"] = (roles.length != 0) ? roles : null;
+    ansibleAttributes["roles"] = (roles.length != 0) ? roles : [];
   }
   var dependencies = getFormAttributes($(where).find('div.ansibleDependencies'));
   if (dependencies.length != 0) {
     dependencies = getFormAttributes($(where).find('div.ansibleDependencies'))[0]['lsValue'];
-    ansibleAttributes["dependencies"] = (dependencies.length != 0) ? dependencies : null;
+    ansibleAttributes["dependencies"] = (dependencies.length != 0) ? dependencies : [];
   }
   var ansiblevars  = (where == 'form') ? getFormAttributes($(where).find('div.ansibleVars').filter(function() { return $(this).closest('div.env').length == 0; })) : getFormAttributes($(where).find('div.ansibleVars'));
-  ansibleAttributes["vars"] = (Object.keys(ansiblevars).length != 0) ? ansiblevars : null;
+  ansibleAttributes["vars"] = (Object.keys(ansiblevars).length != 0) ? ansiblevars : [];
 
   var ansibleTargets = getAnsibleTargets();
-  ansibleAttributes["targets"] = (ansibleTargets.length != 0) ? ansibleTargets : null;
+  ansibleAttributes["targets"] = (ansibleTargets.length != 0) ? ansibleTargets : [];
   return ansibleAttributes;
 }
 

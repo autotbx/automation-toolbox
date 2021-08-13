@@ -216,31 +216,25 @@ function getAnsibleAttributes(where) {
     ansibleAttributes["credentials"]["type"] = ansibleCredType;
     ansibleAttributes["credentials"]["ssh_key"] = ansibleCredSSH;
   }
-  if (ansibleGalaxy != "") {
-    ansibleAttributes["defaultGalaxyServer"] = ansibleGalaxy;
+  else {
+    ansibleAttributes["credentials"] = null;
   }
+  ansibleAttributes["defaultGalaxyServer"] = (ansibleGalaxy != "") ? ansibleGalaxy : null;
   var roles = getFormAttributes($(where).find('div.ansibleRoles'));
   if (roles.length != 0) {
     roles = getFormAttributes($(where).find('div.ansibleRoles'))[0]['lsValue'];
-    if (roles.length != 0) {
-      ansibleAttributes["roles"] = roles;
-    }
+    ansibleAttributes["roles"] = (roles.length != 0) ? roles : null;
   }
   var dependencies = getFormAttributes($(where).find('div.ansibleDependencies'));
   if (dependencies.length != 0) {
     dependencies = getFormAttributes($(where).find('div.ansibleDependencies'))[0]['lsValue'];
-    if (dependencies.length != 0) {
-      ansibleAttributes["dependencies"] = dependencies;
-    }
+    ansibleAttributes["dependencies"] = (dependencies.length != 0) ? dependencies : null;
   }
   var ansiblevars  = (where == 'form') ? getFormAttributes($(where).find('div.ansibleVars').filter(function() { return $(this).closest('div.env').length == 0; })) : getFormAttributes($(where).find('div.ansibleVars'));
-  if (Object.keys(ansiblevars).length != 0) {
-    ansibleAttributes["vars"] = ansiblevars;
-  }
+  ansibleAttributes["vars"] = (Object.keys(ansiblevars).length != 0) ? ansiblevars : null;
+
   var ansibleTargets = getAnsibleTargets();
-  if (ansibleTargets.length != 0) {
-    ansibleAttributes["targets"] = ansibleTargets;
-  }
+  ansibleAttributes["targets"] = (ansibleTargets.length != 0) ? ansibleTargets : null;
   return ansibleAttributes;
 }
 

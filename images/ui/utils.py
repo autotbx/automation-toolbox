@@ -112,7 +112,7 @@ def formData(request):
   jsonfields = ["environments", "attributes", "defaultAttributes", "requiredAttributes", "ansibleAttributes"]
   for k in request.form:
       v = request.form[k]
-      if k != "name":
+      if k != "name" and k != "csrf_token":
         if k in jsonfields:
           try:
             v = json.loads(v)
@@ -876,7 +876,7 @@ def updateFieldsValues(form, plural, obj):
         get = getAttribute(attr['name'], obj['spec']['attributes'], attr['type'])
         if get != '':
           attributes = popAttribute(attr['name'], attributes)
-        attrs.append({'name' : attr['name'], attr['type'] : get })
+        attrs.append({'name' : attr['name'], attr['type'] : get if get != '' else [] if attr['type'].startswith('l') else '' })
       form = updateFieldsValue(form, "requiredAttributes", "requiredAttributes", "value", attrs)
     form = updateFieldsValue(form, "attributes", "attributes", "value", attributes)
     if "ansibleAttributes" in obj["spec"]:

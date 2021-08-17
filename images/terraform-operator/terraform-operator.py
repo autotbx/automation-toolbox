@@ -404,7 +404,8 @@ def planRequestDelete(body, name, namespace, logger,  **kwargs):
 def stateUpdate(body, name, namespace, logger, **kwargs):
   if not body.spec['autoPlanRequest']:
     return
-  create_plan(logger, 'PlanRequest',  f'update-state-{name}', namespace, name)
+  if len(custom_api_instance.list_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'modules')["items"]) != 0:
+    create_plan(logger, 'PlanRequest',  f'update-state-{name}', namespace, name)
 
 @kopf.on.update(API_GROUP, API_VERSION, 'providers')
 def  providersUpdate(body, name, namespace, logger, **kwargs):

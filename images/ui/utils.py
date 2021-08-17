@@ -877,10 +877,14 @@ def updateFieldsValues(form, plural, obj):
     if tplobj != None:
       attrs = []
       for attr in tplobj['spec']['requiredAttributes']:
-        get = getAttribute(attr['name'], obj['spec']['attributes'], attr['type'])
-        if get != '':
+        try:
+          get = getAttribute(attr['name'], obj['spec']['attributes'], attr['type'])
+        except KeyError:
+          #module <-> template type mismatch,
+          get = ''
+        if get != None:
           attributes = popAttribute(attr['name'], attributes)
-        attrs.append({'name' : attr['name'], attr['type'] : get if get != '' else [] if attr['type'].startswith('l') else '' })
+        attrs.append({'name' : attr['name'], attr['type'] : get if get != '' and get != None else [] if attr['type'].startswith('l') else '' })
       form = updateFieldsValue(form, "requiredAttributes", "requiredAttributes", "value", attrs)
     form = updateFieldsValue(form, "attributes", "attributes", "value", attributes)
     if "ansibleAttributes" in obj["spec"]:
@@ -920,7 +924,7 @@ def getAttribute(attribute, attributes, attrtype):
   for attr in attributes:
     if attr['name'] == attribute:
       return attr[attrtype]
-  return ''
+  return None
 
 def apiMapping(kind):
   if kind == "states":

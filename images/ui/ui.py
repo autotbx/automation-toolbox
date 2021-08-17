@@ -104,7 +104,7 @@ def saveKind(plural, method, request, namespace):
     _k8s_obj = _k8s_custom.patch_cluster_custom_object if cluster else _k8s_custom.patch_namespaced_custom_object
   else:
     _k8s_obj = _k8s_custom.create_cluster_custom_object if cluster else _k8s_custom.create_namespaced_custom_object
-  body = utils.formData(request)
+  body = utils.formData(request, method)
   if body == None:
     flash(f'Error occured during saving {kind}/{request.form["name"]} : JSON invalid', 'error')
     return
@@ -116,6 +116,8 @@ def saveKind(plural, method, request, namespace):
     else:
       body["spec"]["moduleTemplate"] = None
       body["spec"]["clusterModuleTemplate"] = None
+  if plural == "states" and method == "edit" and not "clusterProviders[]" in request.form:
+    body["spec"]["clusterProviders"] = None
   print(f"Saving {plural}/{request.form['name']} [{current_user.username}]: {body}")
   body['apiVersion'] = f'{API_GROUP}/{API_VERSION}'
   body['kind']= kind
@@ -294,7 +296,7 @@ def new_states():
 @login_required
 def states():
   kind = utils.formatApiKind('states')
-  body = utils.formData(request)
+  body = utils.formData(request, 'create')
   body['apiVersion'] = f'{API_GROUP}/{API_VERSION}'
   body['kind']= kind
   body['metadata'] = client.V1ObjectMeta(name=f'{request.form["name"]}', namespace=f'{request.form["name"]}')

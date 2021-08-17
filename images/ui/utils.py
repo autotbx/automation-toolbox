@@ -107,7 +107,7 @@ def formatKind(kind, obj):
       'namespace' :  nslink
     }
 
-def formData(request):
+def formData(request, method):
   body = {'spec' : {}}
   jsonfields = ["environments", "attributes", "defaultAttributes", "requiredAttributes", "ansibleAttributes"]
   for k in request.form:
@@ -128,8 +128,12 @@ def formData(request):
                 v = True
               elif v.lower() == "false":
                 v = False
-        if v != None and v != "":
-          body['spec'][k.replace('[]','')] = v
+        if method == "edit":
+          if v != None:
+            body['spec'][k.replace('[]','')] = v if v != "" or type(v) == type([]) else None
+        else:
+          if v != None and v != "":
+            body['spec'][k.replace('[]','')] = v
 
   return body
 

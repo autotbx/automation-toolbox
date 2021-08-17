@@ -1,3 +1,2 @@
 sshpass
 python3-jmespath
-python-jmespath

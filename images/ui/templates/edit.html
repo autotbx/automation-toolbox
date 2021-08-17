@@ -497,7 +497,8 @@ function genFields(fields) {
           html += '</select>'
         break;
         case 'textarea':
-          html += '<textarea class="form-control" name="'+field['id']+'">'+field['value']+'</textarea>';
+          var textareaval = ("value" in field) ? field['value'] : ''
+          html += '<textarea class="form-control" name="'+field['id']+'">'+textareaval+'</textarea>';
         break
         case "environments": 
             switch(plural) {

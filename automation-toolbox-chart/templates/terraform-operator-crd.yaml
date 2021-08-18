@@ -964,8 +964,10 @@ spec:
               properties:
                 customTerraformInit:
                   type: string
+                  default:  "{{ .Values.states.defaultCustomTerraformInit }}"
                 terraformOption:
                   type: string
+                  default:  "{{ .Values.states.defaultTerraformOption }}"
                 clusterProviders:
                   type: array
                   items:
@@ -974,7 +976,7 @@ spec:
                   type: string
                 trustedCA:
                   type: string
-                  default: ""
+                  default: "{{ .Values.states.defaultTrustedCA }}"
                 autoPlanApprove:
                   type: boolean
                 autoPlanRequest:

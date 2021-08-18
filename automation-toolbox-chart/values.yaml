@@ -56,6 +56,10 @@ ui:
     type: ClusterIP
     port: 80
 
+states:
+  defaultCustomTerraformInit: ""
+  defaultTerraformOption: ""
+  defaultTrustedCA: ""
 
 image:
   repository: nginx

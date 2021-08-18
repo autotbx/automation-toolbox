@@ -214,6 +214,23 @@ def create_plan(logger, kind, jobPrefx, namespace, planRequest, originalPlan=Non
   except Exception as e:
     logger.error(f'Failed to create plan for {kind} {planRequest}[{namespace}] in state {state["metadata"]["name"]}: {e}')
 
+def getAnsibleHostsImpacted(output):
+  ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+  line_to_parse = []
+  found = False
+  hostsImpacted = []
+  for line in output.splitlines():
+    if found:
+      line_to_parse.append(ansi_escape.sub('', line))
+    if "PLAY RECAP **********************" in line:
+      found = True
+  for line in line_to_parse:
+    match = re.search(r"(?P<host>[0-9A-Za-z._-]+)\s+: ok=(?P<ok>\d+)\s+changed=(?P<changed>\d+)\s+unreachable=(?P<unreachable>\d+)\s+failed=(?P<failed>\d+)\s+skipped=(?P<skipped>\d+)\s+rescued=(?P<rescued>\d+)\s+ignored=(?P<ignored>\d+)" , line)
+    if match:
+      if int(match.group("changed")) != 0:
+        hostsImpacted.append(match.group('host'))
+  return hostsImpacted
+
 ## CREATE CRD handlers
 
 @kopf.on.create(API_GROUP, API_VERSION, 'planrequests')
@@ -245,13 +262,25 @@ def planStatus(diff, status, namespace, logger, body, **kwargs):
     log = get_pod_log(logger, namespace, body.status['planJob'])
     updateCustomStatus(logger, plural, namespace, body.metadata.name, {'planOutput' : log})
     if body.spec['approved']:
-        logger.info(f"{body['kind']} {body.metadata['name']} completed and approved, request scheduling")
-        job(logger, body.metadata["name"], namespace, body, 'terraform' if body['kind'] == "Plan" else "ansible", 'apply')
+      if body["kind"] == "Plan":
+        if "Your infrastructure matches the configuration." in log:
+          logger.info(f"Plan {body.metadata.name} produces an up-to-date plan, skipping apply")
+          updateCustomStatus(logger, plural, namespace, body.metadata.name, {'applyStatus': 'Skipped'})
+        else:
+          logger.info(f"{body['kind']} {body.metadata['name']} completed and approved, request scheduling")
+          job(logger, body.metadata["name"], namespace, body, 'terraform', 'apply')
+      else:
+        if len(getAnsibleHostsImpacted(log)) == 0:
+          logger.info(f"Plan {body.metadata.name} produces an up-to-date plan, skipping apply")
+          updateCustomStatus(logger, plural, namespace, body.metadata.name, {'applyStatus': 'Skipped'})
+        else:
+          logger.info(f"{body['kind']} {body.metadata['name']} completed and approved, request scheduling")
+          job(logger, body.metadata["name"], namespace, body, 'ansible', 'apply')
     else:
       if body["kind"] == "Plan":
         if "Your infrastructure matches the configuration." in log:
-          logger.info(f"Plan {body.metadata.name} produces an up-to-date plan, autoApproving")
-          custom_api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', body.metadata.name, {'spec': {'approved': True}})
+          logger.info(f"Plan {body.metadata.name} produces an up-to-date plan, skipping apply")
+          updateCustomStatus(logger, plural, namespace, body.metadata.name, {'applyStatus': 'Skipped'})
         else:
           if "originalPlan" in body.spec and body.spec['originalPlan'] != "":
             logger.info(f"originalPlan detected for {body.metadata['name']}: {body.spec['originalPlan']}")
@@ -268,11 +297,15 @@ def planStatus(diff, status, namespace, logger, body, **kwargs):
               custom_api_instance.patch_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'plans', body.metadata.name, {'spec': {'approved': True}})
           else:
             logger.info(f"Plan {body.metadata['name']} completed but not approved, waiting approval")
+      else:
+        if len(getAnsibleHostsImpacted(log)) == 0:
+          logger.info(f"Plan {body.metadata.name} produces an up-to-date plan, skipping apply")
+          updateCustomStatus(logger, plural, namespace, body.metadata.name, {'applyStatus': 'Skipped'})
 
   if diff[0][2] != "Failed" and diff[0][3] == "Failed":
     logger.error (f"{body['kind']} {body.metadata['name']} planning failed")
     log = get_pod_log(logger, namespace, body.status['planJob'])
-    updateCustomStatus(logger, plural, namespace, body.metadata.name, {'planOutput' : log})
+    updateCustomStatus(logger, plural, namespace, body.metadata.name, {'planOutput' : log, 'applyStatus': 'Skipped'})
   
   if diff[0][2] != "Active" and diff[0][3] == "Active":
     logger.info(f'{body["kind"]} {body.metadata["name"]} become Active')
@@ -289,10 +322,11 @@ def approved(diff, status, namespace, logger, body, **kwargs):
 @kopf.on.field(API_GROUP, API_VERSION, 'ansibleplans', field="status.applyStatus")
 def applyStatus(diff, status, namespace, logger, body, **kwargs):
   plural = 'plans' if body['kind'] == "Plan" else "ansibleplans"
-  if diff[0][2] != "Completed" and diff[0][3] == "Completed":
-    logger.info(f'{body["kind"]} {body.metadata["name"]} applying completed')
-    log = get_pod_log(logger, namespace, body.status['applyJob'])
-    updateCustomStatus(logger ,plural, namespace, body.metadata.name, {'applyOutput' : log})
+  if diff[0][2] != "Completed" and (diff[0][3] == "Completed" or diff[0][3] == "Skipped"):
+    logger.info(f'{body["kind"]} {body.metadata["name"]} applying {diff[0][3]}')
+    if diff[0][3] == "Completed":
+      log = get_pod_log(logger, namespace, body.status['applyJob'])
+      updateCustomStatus(logger ,plural, namespace, body.metadata.name, {'applyOutput' : log})
     if body['kind'] == "Plan" and not body['metadata']['name'].startswith('delete-mod-'):
       module_names = []
       create_ansible_plan = False

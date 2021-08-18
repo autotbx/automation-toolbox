@@ -1158,6 +1158,7 @@ spec:
                   - Failed
                   - Completed
                   - Pending
+                  - Skipped
                 applyOutput:
                     type: string
                 applyStartTime:
@@ -1324,6 +1325,7 @@ spec:
                   - Failed
                   - Completed
                   - Pending
+                  - Skipped
                 applyOutput:
                     type: string
                 applyStartTime:

@@ -52,7 +52,7 @@
             <div id="planoutput" class="tfoutput">  
                 {{ planOutput | safe}}
                 {% if not plan['spec']['approved'] %}/>
-                    {% if plan['status']['planStatus'] != "Failed" %}
+                    {% if plan['status']['planStatus'] != "Failed" and plan['status']['applyStatus'] != "Skipped" %}
                     <button  id="approve" class="btn btn-secondary btn-lg btn-block">Approve this plan</button>
                     {% endif %}
                 {% endif %}

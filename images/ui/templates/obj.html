@@ -68,9 +68,9 @@ $(document).ready(function() {
   $(".actiondelete").click(function() {
     if (confirm('Arey you sure to delete {{plural}}/{{name}} ?')) {
         {% if namespace == None %}
-          location.href = '/cluster/{{plural}}/?delete=true&name={{name}}'
+          location.href = '/cluster/{{plural}}/?delete=true&name={{name}}&csrf_token={{ csrf_token() }}'
         {% else %}
-          location.href = '/{{plural}}/{{namespace}}/?delete=true&name={{name}}'
+          location.href = '/{{plural}}/{{namespace}}/?delete=true&name={{name}}&csrf_token={{ csrf_token() }}'
         {% endif %}
     }
     

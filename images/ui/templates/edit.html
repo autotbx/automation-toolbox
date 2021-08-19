@@ -699,15 +699,25 @@ function setinvalid(attr, invalid=true){
             var attrtype = getAttributeType(attribute);
             if (attrtype.startsWith('l') && attribute[attrtype].length == 0) {
               setinvalid(attribute['name']);
-              //alert('error');
               event.preventDefault();
               event.stopPropagation();
-          //invalid is-invalid
             }
             else {
               setinvalid(attribute['name'], false);
             }
           });
+          var ansibleAttributes = getAnsibleAttributes('form');
+          if (ansibleAttributes['roles'].length != 0 && ansibleAttributes['targets'].length == 0) {
+            $('div.attrname > input', 'div.ansibleHosts').addClass('invalid is-invalid');
+            $('div', 'div.ansibleHosts').show();
+            $('div', 'div.ansibleRoles').show();
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          else {
+            $('div.attrname > input', 'div.ansibleHosts').addClass('valid is-valid');
+            $('div.attrname > input', 'div.ansibleHosts').removeClass('invalid is-invalid');
+          }
         } 
         if (form.checkValidity() === false) {
           event.preventDefault();

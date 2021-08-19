@@ -10,3 +10,4 @@
 * UI/CDR: Add description field for attribute
 * UI/CRD: For moduletemplate, add an import functionality to automatically import a module, the available variable, type and description 
 * UI/OP: improve outputs support
+* TOOL: create a new image containing gen / ansible /tf to improve troubleshooting issue 

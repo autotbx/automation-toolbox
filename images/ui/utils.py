@@ -78,9 +78,10 @@ def formatKind(kind, obj):
       'namespace' :  nslink
     }
     if "status" in obj and "plans" in obj["status"]:
-        out['plans'] = ','.join([ f'<a href="/plans/{escapeAttribute(x)}">{escapeAttribute(x)}</a>' for x in obj["status"]["plans"]])
+      kt = 'plans' if kind == 'planrequests' else 'ansibleplans'
+      out['plans'] = ','.join([ f'<a href="/{kt}/{namespace}/{escapeAttribute(x)}">{escapeAttribute(x)}</a>' for x in obj["status"]["plans"]])
     else:
-        out['plans'] = ''
+      out['plans'] = ''
     return out
     
   elif kind == "providers" or kind == "clusterproviders":
@@ -101,8 +102,8 @@ def formatKind(kind, obj):
     return {
       'name' : link,
       "autoPlanRequest": obj["spec"]["autoPlanRequest"],
-      "clusterModuleTemplate": f'<a href="/clustermoduletemplates/{escapeAttribute(obj["spec"]["clusterModuleTemplate"])}">{escapeAttribute(obj["spec"]["clusterModuleTemplate"])}</a>' if "clusterModuleTemplate" in obj["spec"] else "",
-      "moduleTemplate": f'<a href="/moduletemplates/{escapeAttribute(obj["spec"]["moduleTemplate"])}">{escapeAttribute(obj["spec"]["moduleTemplate"])}</a>' if "moduleTemplate" in obj["spec"] else "",
+      "clusterModuleTemplate": f'<a href="/cluster/clustermoduletemplates/{escapeAttribute(obj["spec"]["clusterModuleTemplate"])}/edit">{escapeAttribute(obj["spec"]["clusterModuleTemplate"])}</a>' if "clusterModuleTemplate" in obj["spec"] else "",
+      "moduleTemplate": f'<a href="/moduletemplates/{namespace}/{escapeAttribute(obj["spec"]["moduleTemplate"])}/edit">{escapeAttribute(obj["spec"]["moduleTemplate"])}</a>' if "moduleTemplate" in obj["spec"] else "",
       'creationTimestamp' : obj["metadata"]["creationTimestamp"],
       'namespace' :  nslink
     }

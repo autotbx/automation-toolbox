@@ -59,8 +59,15 @@ def updateCustomStatus(logger, plural, namespace, name, vals):
     pass
 
 def createJob(namespace, name, jobtype, action, obj):
-  update_trust_ca = "kubectl get states "+namespace+" -n "+namespace+"  -o=jsonpath='{.spec.trustedCA}' > /usr/local/share/ca-certificates/local.crt ; update-ca-certificates ; "
-  tf_option = "$(kubectl get states "+namespace+" -n "+namespace+"  -o=jsonpath='{.spec.terraformOption}')"
+  state = get_state(namespace)
+  if state == None:
+    logger.error(f"Cannot get state in namespace {namespace}, skipping createJob")
+    return
+  update_trust_ca = 'set +x; [ -z "$TRUSTED_CA" ] || ( echo -e "$TRUSTED_CA" > /usr/local/share/ca-certificates/local.crt ; update-ca-certificates); set -x ; '
+  env_trust_ca = client.V1EnvVar(name="TRUSTED_CA", value=state['spec']['trustedCA'] if "trustedCA" in state['spec'] else '')
+  #terraform k8s backend use a list verb to find the secret, therefore, not possible to correctly filter permission between gen & apply
+  #vols_mount_tfgen = [client.V1VolumeMount(name="tfgen-token", mount_path="/var/run/secrets/kubernetes.io/serviceaccount")]
+  #vols_tfgen = [client.V1Volume(name="tfgen-token", secret=client.V1SecretVolumeSource(secret_name="tfgen-token-47xhl"))]
   if jobtype == "terraform":
     container_name = "terraform"
     init_container_name = "terraform-gen"
@@ -75,16 +82,21 @@ def createJob(namespace, name, jobtype, action, obj):
     env_tf_path = client.V1EnvVar(name="TF_PATH", value="/tf/main.tf")
     env_tf_ns_val  = client.V1EnvVarSource(field_ref=client.V1ObjectFieldSelector(field_path="metadata.namespace"))
     env_tf_ns = client.V1EnvVar(name="K8S_NAMESPACE", value=namespace)
-    env = [env_tf_ns, env_tf_path, env_tf_secret, env_tf_target, env_tf_state]
+    env_tf_option = client.V1EnvVar(name="TF_OPTION", value=state['spec']['terraformOption'] if "terraformOption" in state['spec'] else '')
+    env = [env_tf_ns, env_tf_path, env_tf_target, env_tf_state, env_trust_ca]
     vols_mount = [client.V1VolumeMount(name="tf", mount_path="/tf")]
     vols = [client.V1Volume(name="tf", empty_dir={})]
     init_run_args = ["python /tfgen.py"]
     if action == "destroy":
       run_args = ["echo DESTROYYY"]
     elif action == "apply":
-      run_args = [update_trust_ca + "kubectl get secrets $K8S_SECRET -n $K8S_NAMESPACE  -o=jsonpath='{.data.plan}' | base64 -d > /tmp/plan; mkdir /tmp/empty; cd /tf; terraform init; terraform apply "+tf_option+"  /tmp/plan;"]
+      plan = core_api_instance.read_namespaced_secret(f"tf-plan-{name}", namespace)
+      env_tf_plan = client.V1EnvVar(name="TF_PLAN", value=plan.data["plan"])
+      run_args = [update_trust_ca + ' echo "$TF_PLAN" | base64 -d > /tmp/plan; mkdir /tmp/empty; cd /tf; terraform init; terraform apply $TF_OPTION /tmp/plan;']
     elif action == "plan":
-      run_args = [update_trust_ca + "mkdir /tmp/empty; cd /tf;  terraform init && terraform plan "+tf_option+" $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
+      env_tf_plan = client.V1EnvVar(name="TF_PLAN", value="")
+      run_args = [update_trust_ca + " mkdir /tmp/empty; cd /tf;  terraform init && terraform plan $TF_OPTION $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
+    env = [env_tf_ns, env_tf_path, env_tf_target, env_tf_state, env_trust_ca, env_tf_plan, env_tf_secret]
   elif jobtype == "ansible":
     container_name = "ansible"
     init_container_name = "ansible-gen"
@@ -98,7 +110,7 @@ def createJob(namespace, name, jobtype, action, obj):
     env_ansible_color = client.V1EnvVar(name="ANSIBLE_FORCE_COLOR", value="1")
     env_ansible_color2 = client.V1EnvVar(name="PY_COLORS", value="1")
     env_ansible_checkkey = client.V1EnvVar(name="ANSIBLE_HOST_KEY_CHECKING", value="False")
-    env = [ env_ansible_checkkey, env_ansible_log, env_namespace, env_ansible_run, env_ansible_color, env_ansible_color2]
+    env = [ env_ansible_checkkey, env_ansible_log, env_namespace, env_ansible_run, env_ansible_color, env_ansible_color2, env_trust_ca]
     vols_mount = [client.V1VolumeMount(name="data", mount_path="/data")]
     vols = [client.V1Volume(name="data", empty_dir={})]
     if action == "plan":
@@ -119,8 +131,8 @@ def createJob(namespace, name, jobtype, action, obj):
 
   template = client.V1PodTemplate()
   template.template = client.V1PodTemplateSpec()
-  template.template.spec = client.V1PodSpec(containers=[container], init_containers=[init_container], service_account_name="tfgen",restart_policy=restart_policy, automount_service_account_token=True, volumes=vols)
-  
+  template.template.spec = client.V1PodSpec(containers=[container], init_containers=[init_container], service_account_name="automation-toolbox",restart_policy=restart_policy, automount_service_account_token=True, volumes=vols)
+
   body = client.V1Job(api_version="batch/v1", kind="Job")
   body.metadata = client.V1ObjectMeta(namespace=namespace, generate_name=f"{jobtype}-{action}-{name}-", labels={"app": jobtype}, annotations={'planName': name, 'type': action})
   body.status = client.V1JobStatus()
@@ -327,7 +339,7 @@ def applyStatus(diff, status, namespace, logger, body, **kwargs):
     if diff[0][3] == "Completed":
       log = get_pod_log(logger, namespace, body.status['applyJob'])
       updateCustomStatus(logger ,plural, namespace, body.metadata.name, {'applyOutput' : log})
-    if body['kind'] == "Plan" and not body['metadata']['name'].startswith('delete-mod-'):
+    if body['kind'] == "Plan" and not body['metadata']['name'].startswith('delete-mod-') and body['status']['planStatus'] == "Completed":
       module_names = []
       create_ansible_plan = False
       for target in body["spec"]["targets"] if "targets" in body['spec'] else []:

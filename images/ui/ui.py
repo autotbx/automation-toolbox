@@ -297,8 +297,9 @@ def states():
     if api_response.status.phase == 'Active':
       try:
         _k8s_custom.create_namespaced_custom_object(API_GROUP, API_VERSION, request.form["name"], "states", body=body)
-        _k8s_core.create_namespaced_service_account(request.form["name"], client.V1ServiceAccount(metadata=client.V1ObjectMeta(name='tfgen')))
-        _k8s_rbac.create_cluster_role_binding(client.V1ClusterRoleBinding(metadata=client.V1ObjectMeta(name=f'tfgen-cluster-admin-{request.form["name"]}'), role_ref=client.V1RoleRef(api_group="rbac.authorization.k8s.io", kind="ClusterRole", name="cluster-admin"), subjects=[client.V1Subject(name='tfgen', namespace=request.form["name"], kind='ServiceAccount')] ))
+        _k8s_core.create_namespaced_service_account(request.form["name"], client.V1ServiceAccount(metadata=client.V1ObjectMeta(name='automation-toolbox')))
+        _k8s_rbac.create_cluster_role_binding(client.V1ClusterRoleBinding(metadata=client.V1ObjectMeta(name=f'automation-toolbox-{request.form["name"]}'), role_ref=client.V1RoleRef(api_group="rbac.authorization.k8s.io", kind="ClusterRole", name="automation-toolbox"), subjects=[client.V1Subject(name='automation-toolbox', namespace=request.form["name"], kind='ServiceAccount')] ))
+        _k8s_rbac.create_namespaced_role_binding(request.form['name'], client.V1RoleBinding(metadata=client.V1ObjectMeta(name=f'automation-toolbox'), role_ref=client.V1RoleRef(api_group="rbac.authorization.k8s.io", kind="ClusterRole", name="automation-toolbox"), subjects=[client.V1Subject(name='automation-toolbox', namespace=request.form["name"], kind='ServiceAccount')]))
       except ApiException as e:
         flash(f'Error occured during saving {kind}/{request.form["name"]} : {e} <br /> body: {body}', 'error')
         return render_template("edit.html",pluralTitle='State', name=f"New State", plural='states', mode="create", action="create", form=form, namespaces=utils.getNamespace(),username=current_user.username, namespace=None)

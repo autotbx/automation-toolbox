@@ -32,7 +32,6 @@ except:
   print('Unable to load json file : {}'.format(users_file))
   exit(1)
 
-
 app = Flask(__name__)
 app.secret_key = app_secret
 app.debug = True if app_debug == "1" else False
@@ -42,7 +41,6 @@ login_manager.login_message = None
 login_manager.login_view = "login"
 csrf = CSRFProtect()
 csrf.init_app(app)
-
 
 clusterplurals = ["clusterproviders", "clustermoduletemplates" ]
 plurals = [
@@ -186,19 +184,17 @@ def login():
 
 
 @app.route('/')
-@app.route('/plans')
 @app.route('/plans/')
 @login_required
 def plans():
   session['namespace'] = None
   m = [{ "name" : "State", "field": "namespace"}] + utils.apiMapping('plans')
   m2 = [{ "name" : "State", "field": "namespace"}] + utils.apiMapping('planrequests')
-  plansTable, plansJs = utils.genTable(m, 'plans', '/api/plans')
-  planRequestsTable, planRequestsJs =  utils.genTable(m2, 'planrequests', '/api/planrequests')
+  plansTable, plansJs = utils.genTable(m, 'plans', '/api/plans/')
+  planRequestsTable, planRequestsJs =  utils.genTable(m2, 'planrequests', '/api/planrequests/')
   js = plansJs + planRequestsJs
   return render_template("plans.html",plural='plans', namespace=None, plansTable=plansTable, planRequestsTable=planRequestsTable, js=js, namespaces=utils.getNamespace(),username=current_user.username,state=False)
 
-@app.route('/plans/<namespace>')
 @app.route('/plans/<namespace>/')
 @nsexist
 @login_required
@@ -220,7 +216,6 @@ def plansNamespaced(namespace):
   js = plansJs + planRequestsJs
   return render_template("plans.html",plural='plans', namespace=namespace, plansTable=plansTable, planRequestsTable=planRequestsTable, js=js, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
 
-@app.route('/ansibleplans/<namespace>')
 @app.route('/ansibleplans/<namespace>/')
 @nsexist
 @login_required
@@ -237,7 +232,6 @@ def ansplansNamespaced(namespace):
   planRequestsTable, planRequestsJs =  utils.genTable(utils.apiMapping('planrequests'), 'planrequests', f'/api/planrequests/{namespace}/')
   js = plansJs + planRequestsJs
   return render_template("plans.html",plural='plans', namespace=namespace, plansTable=plansTable, planRequestsTable=planRequestsTable, js=js, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
-
 
 @app.route('/plans/<namespace>/<name>')
 @nsexist
@@ -281,17 +275,13 @@ def ansplan(namespace, name):
   
   return render_template("plan.html",plural='ansibleplans', namespace=namespace, plan=plan, css=css, planOutput=planOutput, applyOutput=applyOutput, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
 
-
-
 @app.route('/states/_new')
-@app.route('/states/_new/')
 @login_required
 def new_states():
   form = utils.getForm('states')
   form = json.dumps(utils.safeDump(form))
   return render_template("edit.html",pluralTitle='State', name=f"New State", plural='states', mode="create", action="create", form=form, namespaces=utils.getNamespace(),username=current_user.username, namespace=None)
 
-@app.route('/states', methods=['POST'])
 @app.route('/states/', methods=['POST'])
 @login_required
 def states():
@@ -333,7 +323,6 @@ def new(plural, namespace):
   form = json.dumps(utils.safeDump(form))
   return render_template("edit.html",pluralTitle=plural.title(), action="create", namespace=namespace, name=f"New {plural.title()}", plural=plural, mode="create", form=form, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
 
-
 @app.route('/<plural>/<namespace>/<name>/edit')
 @nsexist
 @login_required
@@ -367,8 +356,6 @@ def newCluster(plural):
   form = json.dumps(utils.safeDump(form))
   return render_template("edit.html",pluralTitle=plural.title(), action="create", namespace=session.get("namespace",None), name=f"New {plural.title()}", plural=plural, mode="create", form=form, namespaces=utils.getNamespace(),username=current_user.username)
 
-
-@app.route('/<plural>')
 @app.route('/<plural>/')
 @login_required
 def plural(plural):
@@ -377,11 +364,9 @@ def plural(plural):
 
   plural = plural
   m = [{ "name" : "NS", "field": "namespace"}] + utils.apiMapping(plural)
-  table, js = utils.genTable(m, plural, f'/api/{plural}')
+  table, js = utils.genTable(m, plural, f'/api/{plural}/')
   return render_template("objs.html", plural=plural, objs=plural.title(), pluralTitle=plural.title(), namespace=None, table=table, js=js, namespaces=utils.getNamespace(),username=current_user.username)
 
-  
-@app.route('/cluster/<plural>', methods=['GET', 'POST'])
 @app.route('/cluster/<plural>/', methods=['GET', 'POST'])
 @login_required
 def clusterPlural(plural):
@@ -398,7 +383,7 @@ def clusterPlural(plural):
     deleteKind(plural, request.args.get('name'), None)
 
   plural = plural
-  table, js = utils.genTable(utils.apiMapping(plural), plural, f'/api/{plural}')
+  table, js = utils.genTable(utils.apiMapping(plural), plural, f'/api/{plural}/')
   return render_template("objs.html", plural=plural, objs=plural.title(), pluralTitle=plural.title(), namespace=session.get("namespace",None), table=table, js=js, namespaces=utils.getNamespace(),username=current_user.username)
  
 
@@ -410,7 +395,6 @@ def pluralName(plural, name):
     abort(404)
   return render_template("obj.html", obj=obj, plural=plural, pluralTitle=plural.title(), name=name, namespace=None, namespaces=utils.getNamespace(),username=current_user.username)
 
-@app.route('/<plural>/<namespace>', methods=['GET', 'POST'])
 @app.route('/<plural>/<namespace>/', methods=['GET', 'POST'])
 @nsexist
 @login_required
@@ -430,7 +414,7 @@ def pluralNamespaced(plural, namespace):
       return CSRFError()
     deleteKind(plural, request.args.get('name'), namespace)
 
-  table, js = utils.genTable(utils.apiMapping(plural), plural, f'/api/{plural}/{namespace}')
+  table, js = utils.genTable(utils.apiMapping(plural), plural, f'/api/{plural}/{namespace}/')
   if plural == "states":
     return redirect(f'/plans/{namespace}/')
   else:
@@ -448,7 +432,6 @@ def pluralNameNamespaced(plural, namespace, name):
   session["namespace"]=namespace
   return render_template("obj.html", namespace=namespace, obj=obj, plural=plural, pluralTitle=plural.title(), name=name, namespaces=utils.getNamespace(),username=current_user.username,state=getState(namespace))
 
-@app.route('/api/<plural>')
 @app.route('/api/<plural>/')
 @login_required
 def apiPlural(plural):
@@ -467,7 +450,6 @@ def apiPlural(plural):
   out = [ utils.escapeAttribute(x) for x in out ]
   return jsonify({'data': out})
 
-@app.route('/api/<plural>/<namespace>')
 @app.route('/api/<plural>/<namespace>/')
 @nsexist
 @login_required

@@ -96,7 +96,7 @@ def createJob(namespace, name, jobtype, action, obj):
     elif action == "plan":
       env_tf_plan = client.V1EnvVar(name="TF_PLAN", value="")
       run_args = [update_trust_ca + " mkdir /tmp/empty; cd /tf;  terraform init && terraform plan $TF_OPTION $TF_TARGET -out /tmp/plan && kubectl create secret generic $K8S_SECRET -n $K8S_NAMESPACE --from-file=plan=/tmp/plan"]
-    env = [env_tf_ns, env_tf_path, env_tf_target, env_tf_state, env_trust_ca, env_tf_plan, env_tf_secret]
+    env = [env_tf_ns, env_tf_path, env_tf_target, env_tf_state, env_trust_ca, env_tf_plan, env_tf_secret, env_tf_option]
   elif jobtype == "ansible":
     container_name = "ansible"
     init_container_name = "ansible-gen"

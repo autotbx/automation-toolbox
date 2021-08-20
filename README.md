@@ -486,12 +486,12 @@ This object define the state properties
 |spec.customTerraformInit| string |false|| Custom terraform section { } code|
 |spec.terraformOption| string |false||  terraform CLI option to pass during the execution|
 |spec.trustedCA|string|false||Addition trusted CA|
-|spec.tfGeneratorImage| string |false|dstoffel/terraform-gen| Terraform code generator image pulling path|
-|spec.tfExecutorImage| string |false|dstoffel/terraform| Terraform executor image pulling path|
+|spec.tfGeneratorImage| string |false|autotbx/terraform-gen| Terraform code generator image pulling path|
+|spec.tfExecutorImage| string |false|autotbx/terraform| Terraform executor image pulling path|
 |spec.tfGeneratorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
 |spec.tfExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
-|spec.ansibleGeneratorImage| string |false|dstoffel/ansible| Ansible code generator image path|
-|spec.ansibleExecutorImage| string |false|dstoffel/ansible-gen| Ansible executor image path|
+|spec.ansibleGeneratorImage| string |false|autotbx/ansible| Ansible code generator image path|
+|spec.ansibleExecutorImage| string |false|autotbx/ansible-gen| Ansible executor image path|
 |spec.ansibleGeneratorImagePullPolicy| string |false|IfNotPresent| erraform code generator image policy|
 |spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
 |spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
@@ -667,12 +667,12 @@ Plan is the equivalent of the terraform/ansible plan/apply. You should not creat
 |metadata.name | string |true |         |Name of the Plan|
 |spec.approved |boolean]|true      |         |Approved plan (ie terraform apply will run with this plan)|
 |spec.targets|array[string]|false||Target limitation during terraform operation|
-|spec.tfGeneratorImage| string |false|dstoffel/terraform-gen| Terraform code generator image pulling path|
-|spec.tfExecutorImage| string |false|dstoffel/terraform| Terraform executor image pulling path|
+|spec.tfGeneratorImage| string |false|autotbx/terraform-gen| Terraform code generator image pulling path|
+|spec.tfExecutorImage| string |false|autotbx/terraform| Terraform executor image pulling path|
 |spec.tfGeneratorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
 |spec.tfExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
-|spec.ansibleGeneratorImage| string |false|dstoffel/ansible| Ansible code generator image path|
-|spec.ansibleExecutorImage| string |false|dstoffel/ansible-gen| Ansible executor image path|
+|spec.ansibleGeneratorImage| string |false|autotbx/ansible| Ansible code generator image path|
+|spec.ansibleExecutorImage| string |false|autotbx/ansible-gen| Ansible executor image path|
 |spec.ansibleGeneratorImagePullPolicy| string |false|IfNotPresent| erraform code generator image policy|
 |spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
 |spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
@@ -682,7 +682,7 @@ Plan is the equivalent of the terraform/ansible plan/apply. You should not creat
 A helm charts is provided to install the automation toolbox.
 
 ```bash
-git clone https://github.com/dstoffel/automation-toolbox.git
+git clone https://github.com/autotbx/automation-toolbox.git
 cd automation-toolbox
 git checkout <tag>
 kubectl create ns automation-toolbox

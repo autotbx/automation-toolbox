@@ -5,27 +5,27 @@
 replicaCount: 1
 
 ansibleGen:
-  image: dstoffel/ansible-gen
+  image: autotbx/ansible-gen
   #tag:
   pullPolicy: IfNotPresent
 
 ansible:
-  image: dstoffel/ansible
+  image: autotbx/ansible
   #tag:
   pullPolicy: IfNotPresent
 
 terraformGen:
-  image: dstoffel/terraform-gen
+  image: autotbx/terraform-gen
   #tag:
   pullPolicy: IfNotPresent
 
 terraform:
-  image: dstoffel/terraform
+  image: autotbx/terraform
   #tag:
   pullPolicy: IfNotPresent
 
 operator:
-  image:  dstoffel/terraform-operator
+  image:  autotbx/terraform-operator
   pullPolicy: IfNotPresent
   serviceAccount:
     create: true
@@ -35,7 +35,7 @@ operator:
 ui:
   enabled: true
   replicas: 1
-  image: dstoffel/ui
+  image: autotbx/ui
   secret: default_secret
   #tag:
   pullPolicy: IfNotPresent

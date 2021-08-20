@@ -553,4 +553,4 @@ def jobCondition(diff, status, namespace, logger, body, **kwargs):
 
 @kopf.on.startup()
 def configure(settings: kopf.OperatorSettings, **_):
-  settings.posting.level = logging.DEBUG
+  settings.posting.level = logging.INFO

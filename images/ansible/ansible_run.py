@@ -11,7 +11,7 @@ import pprint
 from sys import exit
 import difflib
 
-API_GROUP = 'terraform.dst.io'
+API_GROUP = 'autotbx.io'
 API_VERSION = 'v1'
 
 try:

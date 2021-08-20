@@ -15,7 +15,7 @@ try:
 except:
     kubernetes.config.load_incluster_config()
 
-API_GROUP = 'terraform.dst.io'
+API_GROUP = 'autotbx.io'
 API_VERSION = 'v1'
 _k8s_custom = kubernetes.client.CustomObjectsApi()
 _k8s_core = kubernetes.client.CoreV1Api()

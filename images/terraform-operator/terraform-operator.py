@@ -17,7 +17,7 @@ configuration = kubernetes.client.Configuration()
 configuration.debug = True
 configuration.logger_file = '/tmp/k8s.log'
 
-API_GROUP = 'terraform.dst.io'
+API_GROUP = 'autotbx.io'
 API_VERSION = 'v1'
 TERRAFORM_DELIMETER="-----------------------------------------------------------------------"
 

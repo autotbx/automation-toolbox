@@ -96,7 +96,7 @@ The state defines the **working environment**. This allow to avoid to create mul
 Example with a ClusterModuleTemplate with environment support enabled :
 
 ```yml
-apiVersion: terraform.dst.io/v1
+apiVersion: autotbx.io/v1
 kind: ClusterModuleTemplate
 metadata:
   name: svvm
@@ -202,7 +202,7 @@ All the following objects are defined using the term **Attributes** which corres
 For example, a Provider with the following definition :
 
 ```yml
-apiVersion: terraform.dst.io/v1
+apiVersion: autotbx.io/v1
 kind: Provider
 metadata:
   name: vcsa
@@ -251,7 +251,7 @@ This generation can be illustrated as follow :
 For example, modules with the following definition :
 
 ```yml
-apiVersion: terraform.dst.io/v1
+apiVersion: autotbx.io/v1
 kind: Module
 metadata:
   name: mod1
@@ -275,7 +275,7 @@ spec:
     - name: myvar
       sValue: myval
 ---
-apiVersion: terraform.dst.io/v1
+apiVersion: autotbx.io/v1
 kind: Module
 metadata:
   name: mod2
@@ -421,7 +421,7 @@ This object represent a terraform provider at the cluster. Cluster level is used
 |spec.environments | array[array[attributes]] |false|| Overwrite attributes for defined env|
 
 ```yml
-apiVersion: terraform.dst.io/v1
+apiVersion: autotbx.io/v1
 kind: ClusterProvider
 metadata:
   name: vcsa
@@ -455,7 +455,7 @@ This object represent a terraform provider at the namespace level.
 
 
 ```yml
-apiVersion: terraform.dst.io/v1
+apiVersion: autotbx.io/v1
 kind: Provider
 metadata:
   name: vcsa
@@ -497,7 +497,7 @@ This object define the state properties
 |spec.ansibleExecutorImagePullPolicy| string |false|IfNotPresent| Terraform code generator image policy|
 
 ```yml
-apiVersion: terraform.dst.io/v1
+apiVersion: autotbx.io/v1
 kind: State
 metadata:
   name: mystate
@@ -527,7 +527,7 @@ ClusterModuleTemplates can be consumed by a Module to provides default configura
 |spec.ansibleAttribute|ansibleAttributes|false      |         |Default ansibleAttributes for module that consume this template in the specify environment|
 
 ```yml
-apiVersion: terraform.dst.io/v1
+apiVersion: autotbx.io/v1
 kind: ClusterModuleTemplate
 metadata:
   name: svvm
@@ -580,7 +580,7 @@ ModuleTemplates can be consumed by a Module to provides default configuration wi
 |spec.ansibleAttribute|ansibleAttributes|false      |         |Default ansibleAttributes for module that consume this template in the specify environment|
 
 ```yml
-apiVersion: terraform.dst.io/v1
+apiVersion: autotbx.io/v1
 kind: ModuleTemplate
 metadata:
   name: svvm
@@ -627,7 +627,7 @@ A module object represent a terraform module.
 |spec.ansibleAttribute|ansibleAttributes|false      |         |Default ansibleAttributes for module that consume this template in the specify environment|
 
 ```yml
-apiVersion: terraform.dst.io/v1
+apiVersion: autotbx.io/v1
 kind: Module
 metadata:
   name: myvms

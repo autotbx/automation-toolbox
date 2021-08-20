@@ -19,7 +19,7 @@ except config.ConfigException:
     config.load_incluster_config()
 api_instance = client.CustomObjectsApi()
 
-API_GROUP = 'terraform.dst.io'
+API_GROUP = 'autotbx.io'
 API_VERSION = 'v1'
 ANSIBLE_ATTRIBUTES = 'ansibleAttributes'
 ATTRIBUTE_TYPE = ['iValue', 'nValue', 'sValue', 'bValue', 'liValue', 'lnValue', 'lsValue', 'lbValue']

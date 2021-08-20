@@ -2,9 +2,9 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: clustermoduletemplates.terraform.dst.io
+  name: clustermoduletemplates.autotbx.io
 spec:
-  group: terraform.dst.io
+  group: autotbx.io
   names:
     kind: ClusterModuleTemplate
     plural: clustermoduletemplates
@@ -269,9 +269,9 @@ spec:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: moduletemplates.terraform.dst.io
+  name: moduletemplates.autotbx.io
 spec:
-  group: terraform.dst.io
+  group: autotbx.io
   scope: Namespaced
   names:
     kind: ModuleTemplate
@@ -422,10 +422,10 @@ spec:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: modules.terraform.dst.io
+  name: modules.autotbx.io
 spec:
   scope: Namespaced
-  group: terraform.dst.io
+  group: autotbx.io
   names:
     kind: Module
     plural: modules
@@ -647,10 +647,10 @@ spec:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: clusterproviders.terraform.dst.io
+  name: clusterproviders.autotbx.io
 spec:
   scope: Cluster
-  group: terraform.dst.io
+  group: autotbx.io
   names:
     kind: ClusterProvider
     plural: clusterproviders
@@ -772,10 +772,10 @@ spec:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: providers.terraform.dst.io
+  name: providers.autotbx.io
 spec:
   scope: Namespaced
-  group: terraform.dst.io
+  group: autotbx.io
   names:
     kind: Provider
     plural: providers
@@ -847,10 +847,10 @@ spec:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: planrequests.terraform.dst.io
+  name: planrequests.autotbx.io
 spec:
   scope: Namespaced
-  group: terraform.dst.io
+  group: autotbx.io
   names:
     kind: PlanRequest
     plural: planrequests
@@ -907,10 +907,10 @@ spec:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: states.terraform.dst.io
+  name: states.autotbx.io
 spec:
   scope: Namespaced
-  group: terraform.dst.io
+  group: autotbx.io
   names:
     kind: State
     plural: states
@@ -1027,10 +1027,10 @@ spec:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: plans.terraform.dst.io
+  name: plans.autotbx.io
 spec:
   scope: Namespaced
-  group: terraform.dst.io
+  group: autotbx.io
   names:
     kind: Plan
     plural: plans
@@ -1202,10 +1202,10 @@ spec:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: ansibleplans.terraform.dst.io
+  name: ansibleplans.autotbx.io
 spec:
   scope: Namespaced
-  group: terraform.dst.io
+  group: autotbx.io
   names:
     kind: AnsiblePlan
     plural: ansibleplans
@@ -1367,10 +1367,10 @@ spec:
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: ansibleplanrequests.terraform.dst.io
+  name: ansibleplanrequests.autotbx.io
 spec:
   scope: Namespaced
-  group: terraform.dst.io
+  group: autotbx.io
   names:
     kind: AnsiblePlanRequest
     plural: ansibleplanrequests

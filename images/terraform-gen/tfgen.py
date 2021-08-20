@@ -6,7 +6,7 @@ from jinja2 import Template
 import os
 from sys import exit, stderr
 
-API_GROUP = 'terraform.dst.io'
+API_GROUP = 'autotbx.io'
 API_VERSION = 'v1'
 
 

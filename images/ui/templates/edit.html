@@ -35,7 +35,7 @@
 {% block actions %}
 <button type="button" class="btn btn-success actionedit">Save</button>
 <button type="button" class="btn btn-primary actioncancel">Cancel</button>
-{% if mode != "create" %}
+{% if mode != "create" and plural != "states" %}
 <button type="button" class="btn btn-danger actiondelete" >Delete</button>
 {% endif %}
 {% endblock %}

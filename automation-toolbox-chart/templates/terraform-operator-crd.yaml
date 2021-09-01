@@ -964,7 +964,7 @@ spec:
               properties:
                 customTerraformInit:
                   type: string
-                  default:  "{{ .Values.states.defaultCustomTerraformInit }}"
+                  default: | {{ .Values.states.defaultCustomTerraformInit | nindent 20 }}
                 terraformOption:
                   type: string
                   default:  "{{ .Values.states.defaultTerraformOption }}"

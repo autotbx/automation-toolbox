@@ -1005,10 +1005,18 @@ def genTable(mapping, name, ajax,):
 
   js = """
     var data;
+    function formatDate(d) {
+      console.log(d);
+      var date = new Date(d);
+      return date.getFullYear() + "-" + (date.getMonth()+1).toString().padStart(2,'0') + "-" + date.getDate().toString().padStart(2,'0') + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds()
+    }
     table = $("#%NAME%").DataTable( {
         "ajax": "%AJAX%",
         "createdRow": function( row, data, dataIndex){
             $(row).addClass('table-row');
+            $("td", row).filter(function() {
+               return this.innerHTML.match(/\d+\-\d+\-\d+T\d+:\d+:\d+Z/)
+            }).each(function() { $(this).html(formatDate($(this).html())) });
             $("td:contains('Failed')", row).css("color", "red");
             $("td:contains('Pending')", row).css("color", "orange");
             $("td:contains('Completed')", row).css("color", "green");

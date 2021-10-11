@@ -7,6 +7,7 @@ from typing import Iterable
 import os
 import logging
 import subprocess
+import hashlib
 from urllib.parse import urlparse
 from kubernetes import client, config
 from kubernetes.client.api.custom_objects_api import CustomObjectsApi
@@ -25,26 +26,32 @@ ANSIBLE_ATTRIBUTES = 'ansibleAttributes'
 ATTRIBUTE_TYPE = ['iValue', 'nValue', 'sValue', 'bValue', 'liValue', 'lnValue', 'lsValue', 'lbValue']
 
 class AnsibleCredentials:
-    def __init__(self, login = None, password = None, sshkey = None, con_type = "ssh", winrm_server_cert_validation = "ignore"):
-        self._login = login if login != None else 'root'
-        self._password = password if password != None else ''
-        self._sshkey = sshkey if sshkey != None else ''
+    def __init__(self, login=None, password=None, sshkey=None, con_type="ssh", winrm_server_cert_validation="ignore", data_dir="/data"):
+        self._login = login if login is not None else 'root'
+        self._password = password if password is not None else ''
+        self._sshkey = sshkey if sshkey is not None else ''
+        self._data_dir = data_dir
         self._con_type = con_type
         self._winrm_server_cert_validation = winrm_server_cert_validation
 
     def to_dict(self):
-        vars = {"ansible_user": self._login }
-        #if self._password:
-        vars["ansible_password"] = self._password
-        # TODO write to file
+        vars = {}
+        if self._login:
+            vars["ansible_user"] = self._login
+        if self._password:
+            vars["ansible_password"] = self._password
         if self._sshkey:
-            vars["ansible_sshkey"] = self._sshkey
+            vars["ansible_ssh_private_key_file"] = os.path.join(self._data_dir, "ssh", hashlib.sha256(str.encode(self._sshkey)).hexdigest())
+
         vars["ansible_connection"] = self._con_type
         if self._con_type == "winrm":
             vars["ansible_winrm_server_cert_validation"] = self._winrm_server_cert_validation
             vars["ansible_winrm_transport"] = "ntlm"
         return vars
-        
+
+    def get_ssh_key(self):
+        return self._sshkey
+
 
 class AnsibleTarget:
     """ Represent a target to which Ansible will be run (host, group, etc.)"""
@@ -90,6 +97,10 @@ class AnsiblePlaybook:
             fqdn_roles.append(role)
 
         return fqdn_roles
+
+    def get_ssh_key(self):
+        return self.creds.get_ssh_key()
+
 
 def gen_inventory(groups: Iterable):
     """ Generate an inventory based on the groups givent """
@@ -235,7 +246,7 @@ def _parse_credentials(creds: dict):
     """ Parse credentials from dict retrieve in yaml to AnsibleCredentials object """
     conn_type = "winrm" if "type" in creds and creds["type"] == "winrm" else "ssh"
     winrm_server_cert_validation = creds["winrm_server_cert_validation"] if "winrm_server_cert_validation" in creds else "ignore"
-    credentials = AnsibleCredentials(creds["user"], creds["password"], None, conn_type, winrm_server_cert_validation)
+    credentials = AnsibleCredentials(creds.get("user"), creds.get("password"), creds.get("ssh_key"), conn_type, winrm_server_cert_validation)
 
     return credentials
 
@@ -298,6 +309,19 @@ def resolveDependencies(namespace, module):
             modules = modules + resolveDependencies(namespace, deptarget)
     return modules
 
+
+def write_ssh_key(all_playbooks: list, data_dir: str):
+    ssh_dir = os.path.join(data_dir, "ssh")
+    os.makedirs(ssh_dir, mode=0o500, exist_ok=True)
+
+    for playbook in all_playbooks:
+        key = playbook.get_ssh_key()
+        key_name = hashlib.sha256(str.encode(key)).hexdigest()
+        key_path = os.path.join(ssh_dir, key_name)
+        with open(os.open(key_path, os.O_CREAT | os.O_WRONLY, 0o600), 'w') as key_file:
+            key_file.write(key)
+
+
 def main():
     """ Entrypoint  """
 
@@ -328,7 +352,9 @@ def main():
 
     #write_config(os.path.join(data_dir, "ansible.cfg"))
     write_yaml(gen_inventory(groups), os.path.join(data_dir, "inventory.yaml"))
-    write_yaml(gen_playbook(playbooks), os.path.join(data_dir, "playbook.yaml"))
+    all_playbook = gen_playbook(playbooks)
+    write_yaml(all_playbook, os.path.join(data_dir, "playbook.yaml"))
+    write_ssh_key(playbooks, data_dir)
     #logging.error(list(os.walk('/tmp')))
     clone_roles(playbooks, os.path.join(data_dir, "roles/"), check_ssl)
 

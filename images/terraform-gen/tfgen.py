@@ -23,7 +23,7 @@ out_file = os.environ.get("TF_PATH", "/tmp/main.tf")
 in_kubernetes = os.environ.get("KUBERNETES_PORT",  False)
 state =  os.environ.get("STATE")
 if state == None:
-  printError('STATE env var name not, exiting')
+  printError('STATE env var name not set, exiting')
   exit(1)
 
 api_instance = client.CustomObjectsApi()

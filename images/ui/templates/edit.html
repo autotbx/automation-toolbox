@@ -498,7 +498,7 @@ function genFields(fields) {
         break;
         case 'textarea':
           var textareaval = ("value" in field) ? field['value'] : ''
-          html += '<textarea class="form-control" name="'+field['id']+'">'+textareaval+'</textarea>';
+          html += '<textarea class="form-control" id="form'+field['id']+'" name="'+field['id']+'">'+textareaval+'</textarea>';
         break
         case "environments": 
             switch(plural) {
@@ -544,7 +544,7 @@ function genFields(fields) {
                       "value": ('ansibleAttributes' in env && 'credentials' in env['ansibleAttributes'] && 'password' in  env['ansibleAttributes']['credentials']) ? env['ansibleAttributes']['credentials']['password'] : '',
                     },
                     {
-                      "type": "string",
+                      "type": "textarea",
                       "name": "SSH Key",
                       "id" : "ansible_cred_ssh_key",
                       "value": ('ansibleAttributes' in env && 'credentials' in env['ansibleAttributes'] && 'ssh_key' in  env['ansibleAttributes']['credentials']) ? env['ansibleAttributes']['credentials']['ssh_key'] : '',

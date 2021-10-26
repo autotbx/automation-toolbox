@@ -424,7 +424,7 @@ def getForm(plural, namespace=None):
         {
           "id": "ansible_cred_ssh_key",
           "name": "SSH Key",
-          "type": "string",
+          "type": "textarea",
         },
         {
           "id": "ansible_defaultGalaxyServer",
@@ -646,7 +646,7 @@ def getForm(plural, namespace=None):
         {
           "id": "ansible_cred_ssh_key",
           "name": "SSH Key",
-          "type": "string",
+          "type": "textarea",
         },
         {
           "id": "ansible_defaultGalaxyServer",

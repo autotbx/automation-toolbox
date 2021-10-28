@@ -210,6 +210,7 @@ function getAnsibleAttributes(where) {
   var ansibleCredType = $('#formansible_cred_type', where).val();
   var ansibleCredSSH = $('#formansible_cred_ssh_key', where).val();
   var ansibleGalaxy = $('#formansible_defaultGalaxyServer', where).val();
+  var ansibleRoleInherit = ( $('#formansible_roles_inherit', where).val() === "True" );
   if (ansibleCredUser != "" || ansibleCredPass != "" || ansibleCredType != "" || ansibleCredSSH != "") {
     ansibleAttributes["credentials"] = {}
     ansibleAttributes["credentials"]["user"] = ansibleCredUser;
@@ -226,6 +227,7 @@ function getAnsibleAttributes(where) {
   else if (action == "edit") {
     ansibleAttributes["defaultGalaxyServer"] = (ansibleGalaxy != "") ? ansibleGalaxy : null;
   }
+  ansibleAttributes["rolesInherit"] = ansibleRoleInherit;
 
   var roles = getFormAttributes($(where).find('div.ansibleRoles'));
   if (roles.length != 0) {
@@ -560,7 +562,11 @@ function genFields(fields) {
                   }
                   else if (e['id'] == "ansibleRoles") {
                     var ansibleRoles = ("ansibleAttributes" in env && "roles" in env['ansibleAttributes']) ? env['ansibleAttributes']['roles'] : [];
-                    html += genForm([{id : 'ansibleRoles', name: 'Ansible Roles' , 'hrclass': 'env', 'htype': 'h6', fields: [{'type': 'ansibleRoles', 'name': 'roles', 'value': ansibleRoles}]}]);
+                    html += genForm([{id : 'ansibleRoles', name: 'Ansible Roles' , 'hrclass': 'env', 'htype': 'h6', fields: [
+                    {'type': 'ansibleRoles', 'name': 'roles', 'value': ansibleRoles},
+                    {'type': 'boolean', 'name': 'rolesInherit', 'value': ('ansibleAttributes' in env && 'rolesInherit' in env['ansibleAttributes']) ? env['ansibleAttributes']['rolesInherit'] : true },
+ ]
+                    }]);
                   }
                   else if (e['id'] == "ansibleDependencies") {
                     var ansibleDependencies = ("ansibleAttributes" in env && "dependencies" in env['ansibleAttributes']) ? env['ansibleAttributes']['dependencies'] : [];

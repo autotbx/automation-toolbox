@@ -182,7 +182,17 @@ def _get_ansible_attribute(module: dict, attribute: str, namespace: str):
         template_name = module_spec['moduleTemplate']
         template_spec = api_instance.get_namespaced_custom_object(API_GROUP, API_VERSION, namespace, 'moduletemplates', template_name)["spec"]
 
-    if attribute != 'vars':
+    if attribute == 'roles':
+        inherit = ansible_spec['rolesInherit'] if 'rolesInherit' in ansible_spec else True
+        if inherit:
+            roles = []
+            if template_spec:
+                roles.extend(template_spec[ANSIBLE_ATTRIBUTES][attribute])
+            roles.extend(ansible_spec[attribute])
+        else:
+            roles = ansible_spec[attribute]
+        out = roles
+    elif attribute != 'vars':
         if ANSIBLE_ATTRIBUTES in module_spec and attribute in module_spec[ANSIBLE_ATTRIBUTES]:
             out = module_spec[ANSIBLE_ATTRIBUTES][attribute]
         else:

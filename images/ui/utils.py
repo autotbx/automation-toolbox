@@ -209,6 +209,8 @@ def safeDump(form):
               form[i]["fields"][0]["value"][j]["ansibleAttributes"]["credentials"][x] = escapeAttribute(env["ansibleAttributes"]["credentials"][x])
             if "defaultGalaxyServer" in env["ansibleAttributes"]:
               form[i]["fields"][0]["value"][j]["ansibleAttributes"]["defaultGalaxyServer"] = escapeAttribute(env["ansibleAttributes"]["defaultGalaxyServer"])
+          if "rolesInherit" in env["ansibleAttributes"]:
+            form[i]["fields"][0]["value"][j]["ansibleAttributes"]["rolesInherit"] = escapeAttribute(env["ansibleAttributes"]["rolesInherit"])
         j = j + 1
     elif "fields" in section:
       j = 0
@@ -424,7 +426,7 @@ def getForm(plural, namespace=None):
         {
           "id": "ansible_cred_ssh_key",
           "name": "SSH Key",
-          "type": "string",
+          "type": "textarea",
         },
         {
           "id": "ansible_defaultGalaxyServer",
@@ -441,7 +443,12 @@ def getForm(plural, namespace=None):
             "type": "ansibleRoles",
             "id": "ansibleRoles",
             "value" : [],
-          }
+          },
+          {
+            "type": "boolean",
+            "id": "ansible_roles_inherit",
+            "name": "Inherit roles from template",
+          },
         ]
       },
       {
@@ -546,7 +553,7 @@ def getForm(plural, namespace=None):
             "type": "ansibleRoles",
             "id": "ansibleRoles",
             "value" : [],
-          }
+          },
         ]
       },
       {
@@ -646,7 +653,7 @@ def getForm(plural, namespace=None):
         {
           "id": "ansible_cred_ssh_key",
           "name": "SSH Key",
-          "type": "string",
+          "type": "textarea",
         },
         {
           "id": "ansible_defaultGalaxyServer",
@@ -663,7 +670,7 @@ def getForm(plural, namespace=None):
             "type": "ansibleRoles",
             "id": "ansibleRoles",
             "value" : [],
-          }
+          },
         ]
       },
       {
@@ -895,6 +902,7 @@ def updateFieldsValues(form, plural, obj):
         form = updateFieldsValue(form, "ansibleSpec", "ansible_cred_password", "value", obj['spec']['ansibleAttributes']['credentials']['password'] if "password" in obj['spec']['ansibleAttributes']["credentials"] else '')
         form = updateFieldsValue(form, "ansibleSpec", "ansible_cred_ssh_key", "value", obj['spec']['ansibleAttributes']['credentials']['ssh_key'] if "ssh_key" in obj['spec']['ansibleAttributes']["credentials"] else '')
       form = updateFieldsValue(form, "ansibleSpec", "ansible_defaultGalaxyServer", "value", obj['spec']['ansibleAttributes']['defaultGalaxyServer'] if "defaultGalaxyServer" in obj['spec']['ansibleAttributes'] else '')
+      form = updateFieldsValue(form, "ansibleRoles", "ansible_roles_inherit", "value", obj['spec']['ansibleAttributes']['rolesInherit'] if 'rolesInherit' in obj['spec']['ansibleAttributes'] else True)
       form = updateFieldsValue(form, "ansibleRoles", "ansibleRoles", "value", obj['spec']['ansibleAttributes']['roles'] if "roles" in obj['spec']['ansibleAttributes'] else [])
       form = updateFieldsValue(form, "ansibleDependencies", "ansibleDependencies", "value", obj['spec']['ansibleAttributes']['dependencies'] if "dependencies" in obj['spec']['ansibleAttributes'] else [])
       form = updateFieldsValue(form, "ansibleVars", "ansibleVars", "value", obj['spec']['ansibleAttributes']['vars'] if "vars" in obj['spec']['ansibleAttributes'] else [])

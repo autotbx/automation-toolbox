@@ -655,7 +655,7 @@ function genFields(fields) {
           });
         break;
       }
-      if (field['type'] != "attributes" && field['type'] != 'requiredAttributes' && field['type'] != 'fillRequiredAttributes' && field['type'] != "ansibleRoles" && field['type'] != "ansibleDependencies" && field['type'] != "ansibleHosts"  && field['type'] != "environments") {
+      if (field['type'] != "attributes" && field['type'] != 'requiredAttributes' && field['type'] != 'fillRequiredAttributes' && field['type'] != "ansibleRoles" && field['type'] != "ansibleDependencies" && field['type'] != "ansibleHosts"  && field['type'] != "environments" && field['type'] != "boolean") {
         html += "</div>";
         if ("del" in field || field['id'].includes('password')) {
           html += '<div class="col-sm-1 col-form-label attrbtn">';

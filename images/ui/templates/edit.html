@@ -564,7 +564,7 @@ function genFields(fields) {
                     var ansibleRoles = ("ansibleAttributes" in env && "roles" in env['ansibleAttributes']) ? env['ansibleAttributes']['roles'] : [];
                     html += genForm([{id : 'ansibleRoles', name: 'Ansible Roles' , 'hrclass': 'env', 'htype': 'h6', fields: [
                     {'type': 'ansibleRoles', 'name': 'roles', 'value': ansibleRoles},
-                    {'type': 'boolean', 'name': 'rolesInherit', 'value': ('ansibleAttributes' in env && 'rolesInherit' in env['ansibleAttributes']) ? env['ansibleAttributes']['rolesInherit'] : true },
+                    {'type': 'boolean', 'id': 'ansible_roles_inherit', 'name': 'rolesInherit', 'value': ('ansibleAttributes' in env && 'rolesInherit' in env['ansibleAttributes']) ? env['ansibleAttributes']['rolesInherit'] : true },
  ]
                     }]);
                   }
@@ -588,7 +588,6 @@ function genFields(fields) {
           html += '<div class="form-group row">';
           html += formatAttributes("lsValue", "fqdn", "", "ansibleHosts", true );
           html += '</div>'
-          console.log(field['value']);
           field['value'].forEach(function(element) {
             html += '<div class="ansibleTarget"><div class="form-group row ansibleFQDN">';
             html += formatAttributes("lsValue",  "", element['fqdn'], "list", false, false, "addHostVar", "delAttribute");
